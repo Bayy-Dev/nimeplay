@@ -474,6 +474,7 @@ function attemptLoad(candidate, loadingMsg, onFail) {
     hideLoadingPopup();
     updateSkipButton();
     updateQualityBadge(candidate);
+    updateSafetyBadge(isVidhide);
   }
   function onError() {
     cleanup();
@@ -524,6 +525,24 @@ function updateQualityBadge(candidate) {
   const badge = qs("#qualityBadge");
   if (!badge) return;
   badge.textContent = `${candidate.quality} · ${candidate.provider}`;
+  badge.style.display = "inline-flex";
+}
+
+/* Badge status keamanan server: "aman" kalau iframe-nya disandbox (gak bisa
+   redirect/popup), "ada iklan" kalau providernya (VidHide) kepaksa jalan
+   tanpa sandbox. Provider di luar Mega/VidHide ikut aturan Mega (disandbox)
+   karena belum ketauan perlu dilepas atau enggak. */
+function updateSafetyBadge(isRisky) {
+  const badge = qs("#safetyBadge");
+  if (!badge) return;
+  badge.classList.remove("badge-safe", "badge-ads");
+  if (isRisky) {
+    badge.textContent = "⚠ Ada iklan";
+    badge.classList.add("badge-ads");
+  } else {
+    badge.textContent = "✓ Aman";
+    badge.classList.add("badge-safe");
+  }
   badge.style.display = "inline-flex";
 }
 

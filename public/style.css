@@ -715,6 +715,8 @@ main { max-width: 1180px; margin: 0 auto; padding: 0 28px 64px; }
 .action-btn:hover { border-color: var(--teal); color: var(--teal); }
 .action-badge { color: var(--accent); border-color: var(--accent-dim); cursor: default; }
 .action-badge:hover { color: var(--accent); border-color: var(--accent-dim); }
+.badge-safe { color: var(--teal) !important; border-color: var(--teal) !important; }
+.badge-ads { color: var(--accent) !important; border-color: var(--accent) !important; }
 
 .episode-section {
   background: var(--panel);
