@@ -37,7 +37,7 @@ function cardHTML(raw) {
   const item = normalizeItem(raw);
   if (!item.slug) return "";
   return `
-    <a class="card" href="/watch.html?slug=${encodeURIComponent(item.slug)}">
+    <a class="card" href="/detail.html?slug=${encodeURIComponent(item.slug)}">
       <div class="poster">
         ${item.rank ? `<span class="rank">${esc(item.rank.toString().replace("#", ""))}</span>` : ""}
         <img src="${esc(item.cover)}" alt="${esc(item.title)}" loading="lazy">
@@ -153,7 +153,7 @@ function renderHero() {
         <p class="hero-tag">Direkomendasikan</p>
         <h1 class="hero-title display">${esc(item.title)}</h1>
         <div class="hero-meta">${badges.join("")}</div>
-        <a class="btn-play" href="/watch.html?slug=${encodeURIComponent(item.slug)}">
+        <a class="btn-play" href="/detail.html?slug=${encodeURIComponent(item.slug)}">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="6,4 20,12 6,20"/></svg>
           Tonton Sekarang
         </a>
@@ -232,6 +232,8 @@ async function initWatch() {
     const info = await api(`/detail/${encodeURIComponent(slug)}`);
     qs("#animeTitle").innerHTML = esc(info.title);
     document.title = `${info.title} — Yozora`;
+    const backBtn = qs("#backBtn");
+    if (backBtn) backBtn.href = `/detail.html?slug=${encodeURIComponent(slug)}`;
 
     const cover = info.cover || info.poster || info.image || "";
     const coverEl = qs("#animeCover");
@@ -263,8 +265,11 @@ async function initWatch() {
 }
 
 function setupDescription(text) {
-  const desc = qs("#animeDesc");
-  const toggle = qs("#descToggle");
+  setupClampToggle(qs("#animeDesc"), qs("#descToggle"), text);
+}
+
+function setupClampToggle(desc, toggle, text) {
+  if (!desc) return;
   desc.textContent = text;
   desc.classList.remove("expanded");
   if (!toggle) return;
@@ -612,6 +617,177 @@ function renderDownloads(downloads) {
   `).join("");
 }
 
+/* ---------- Detail page ---------- */
+
+const SUB_KEY = "yozora_subscriptions";
+
+function getSubscriptions() {
+  try {
+    const list = JSON.parse(localStorage.getItem(SUB_KEY));
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+function isSubscribed(slug) {
+  return getSubscriptions().includes(slug);
+}
+
+function toggleSubscription(slug) {
+  let list = getSubscriptions();
+  if (list.includes(slug)) {
+    list = list.filter(s => s !== slug);
+  } else {
+    list.push(slug);
+  }
+  try { localStorage.setItem(SUB_KEY, JSON.stringify(list)); } catch {}
+  return list.includes(slug);
+}
+
+let detailEpisodes = [];
+let detailSlug = "";
+let epSortDesc = true; // true = episode terbaru dulu (kayak referensi)
+let epViewMode = "list"; // "list" atau "grid"
+
+async function initDetail() {
+  const params = new URLSearchParams(location.search);
+  const slug = params.get("slug");
+  detailSlug = slug || "";
+  if (!slug) {
+    qs("#detailTitle").textContent = "Anime tidak ditemukan";
+    return;
+  }
+
+  try {
+    const info = await api(`/detail/${encodeURIComponent(slug)}`);
+    document.title = `${info.title || "Detail"} — Yozora`;
+    qs("#detailTitle").innerHTML = esc(info.title || "Tanpa judul");
+
+    const cover = info.cover || info.poster || info.image || "";
+    const hero = qs("#detailHero");
+    hero.classList.remove("skeleton");
+    if (cover) {
+      hero.style.backgroundImage = `url('${esc(cover)}')`;
+      hero.classList.add("detail-hero-img");
+    }
+
+    renderDetailBadges(info);
+    setupClampToggle(qs("#detailSynopsis"), qs("#synToggle"), info.synopsis || "");
+
+    const subBtn = qs("#subscribeBtn");
+    const subLabel = qs("#subscribeBtnLabel");
+    function paintSub() {
+      const subbed = isSubscribed(slug);
+      subLabel.textContent = subbed ? "Subscribed" : "Subscribe";
+      subBtn.classList.toggle("action-btn-active", subbed);
+    }
+    paintSub();
+    subBtn.onclick = () => { toggleSubscription(slug); paintSub(); };
+
+    detailEpisodes = info.episodes || [];
+    setupResumeButton(slug, detailEpisodes);
+    renderEpisodeList();
+  } catch (e) {
+    qs("#detailTitle").textContent = "Gagal memuat";
+    qs("#detailSynopsis").textContent = e.message;
+  }
+}
+
+function renderDetailBadges(info) {
+  const wrap = qs("#detailBadges");
+  const badges = [];
+  const status = info.status || "";
+  if (status) badges.push(`<span class="chip status-chip">${esc(status)}</span>`);
+  if (info.rating) badges.push(`<span class="chip">★ ${esc(info.rating)}</span>`);
+  const studio = info.studio || info.producers || info.author || "";
+  if (studio) badges.push(`<span class="chip">${esc(studio)}</span>`);
+  const date = info.release_date || info.released || info.aired || info.updated_at || "";
+  if (date) badges.push(`<span class="chip">${esc(date)}</span>`);
+  if (info.type) badges.push(`<span class="chip">${esc(info.type)}</span>`);
+  const views = info.views || info.view_count || info.viewers || "";
+  if (views) badges.push(`<span class="chip">${esc(views)} views</span>`);
+  wrap.innerHTML = badges.join("");
+
+  const genreWrap = document.createElement("div");
+  genreWrap.className = "detail-genres";
+  const genres = info.genre || info.genres || info.category || [];
+  const genreList = Array.isArray(genres) ? genres : (typeof genres === "string" ? genres.split(",").map(g => g.trim()).filter(Boolean) : []);
+  if (genreList.length) {
+    genreWrap.innerHTML = genreList.map(g => `<span class="chip genre-chip">${esc(g)}</span>`).join("");
+    wrap.after(genreWrap);
+  }
+}
+
+function setupResumeButton(slug, episodes) {
+  const btn = qs("#resumeBtn");
+  const label = qs("#resumeBtnLabel");
+  if (!episodes.length) { btn.style.display = "none"; return; }
+
+  const ordered = [...episodes].reverse(); // oldest first, biar konsisten sama watch.html
+  const cw = getContinueWatching().find(i => i.slug === slug);
+  let target = null;
+  if (cw) target = episodes.find(ep => ep.slug === cw.episodeSlug);
+  if (!target) target = ordered[ordered.length - 1]; // episode terbaru
+
+  const num = episodeNumber(target);
+  label.textContent = cw ? `Lanjut Eps ${num}` : `Tonton Eps ${num}`;
+  btn.href = `/watch.html?slug=${encodeURIComponent(slug)}&ep=${encodeURIComponent(target.slug)}`;
+  btn.style.display = "inline-flex";
+}
+
+function renderEpisodeList() {
+  const list = qs("#epList");
+  if (!detailEpisodes.length) {
+    list.innerHTML = `<div class="empty">Belum ada episode.</div>`;
+    return;
+  }
+
+  const q = (qs("#epSearch")?.value || "").trim().toLowerCase();
+  let items = [...detailEpisodes]; // upstream: newest-first by default
+  if (!epSortDesc) items = items.reverse();
+  if (q) {
+    items = items.filter(ep =>
+      episodeNumber(ep).toString().includes(q) ||
+      (ep.title || "").toLowerCase().includes(q)
+    );
+  }
+
+  if (!items.length) {
+    list.innerHTML = `<div class="empty">Episode gak ketemu.</div>`;
+    return;
+  }
+
+  list.className = `ep-list ${epViewMode === "grid" ? "ep-list-grid" : "ep-list-rows"}`;
+
+  if (epViewMode === "grid") {
+    list.innerHTML = items.map(ep => `
+      <a class="ep-btn" href="/watch.html?slug=${encodeURIComponent(detailSlug)}&ep=${encodeURIComponent(ep.slug)}">${esc(episodeNumber(ep))}</a>
+    `).join("");
+  } else {
+    list.innerHTML = items.map(ep => {
+      const views = ep.views || ep.view_count || "";
+      return `
+      <a class="ep-row" href="/watch.html?slug=${encodeURIComponent(detailSlug)}&ep=${encodeURIComponent(ep.slug)}">
+        <span class="ep-row-title">Episode ${esc(episodeNumber(ep))}${ep.title && !/^episode/i.test(ep.title) ? ` — ${esc(ep.title)}` : ""}</span>
+        ${views ? `<span class="ep-row-views">👁 ${esc(views)}</span>` : ""}
+      </a>`;
+    }).join("");
+  }
+}
+
+qs("#epSearch")?.addEventListener("input", () => renderEpisodeList());
+
+qs("#epSortBtn")?.addEventListener("click", () => {
+  epSortDesc = !epSortDesc;
+  renderEpisodeList();
+});
+
+qs("#epViewBtn")?.addEventListener("click", () => {
+  epViewMode = epViewMode === "grid" ? "list" : "grid";
+  renderEpisodeList();
+});
+
 /* ---------- Search form (shared) ---------- */
 
 
@@ -643,4 +819,6 @@ if (qs("#browseSlot")) {
   }
 } else if (qs("#epGrid")) {
   initWatch();
+} else if (qs("#epList")) {
+  initDetail();
 }

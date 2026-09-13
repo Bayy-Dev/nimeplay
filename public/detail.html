@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Yozora — Detail</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <a href="/" class="brand display">YOZO<span>RA</span></a>
+  <form class="search-form" id="searchForm">
+    <input type="text" id="searchInput" placeholder="Cari judul anime...">
+    <button type="submit" aria-label="Cari">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </button>
+  </form>
+</header>
+
+<main>
+  <div class="detail-layout">
+    <div class="watch-toolbar">
+      <a href="/" class="back-btn">&larr; Kembali ke beranda</a>
+    </div>
+
+    <div class="detail-hero skeleton" id="detailHero" style="min-height:280px"></div>
+
+    <h1 class="detail-title display" id="detailTitle">Memuat...</h1>
+
+    <div class="detail-badges" id="detailBadges"></div>
+
+    <div class="detail-cta">
+      <a href="#" id="resumeBtn" class="btn-play" style="display:none">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="6,4 20,12 6,20"/></svg>
+        <span id="resumeBtnLabel">Tonton Sekarang</span>
+      </a>
+      <button type="button" id="subscribeBtn" class="action-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span id="subscribeBtnLabel">Subscribe</span>
+      </button>
+    </div>
+
+    <div class="detail-synopsis-wrap">
+      <div class="dl-heading-row">
+        <h3 class="dl-heading" style="margin:0">Synopsis</h3>
+        <button type="button" id="synToggle" class="desc-toggle" style="display:none">Selengkapnya</button>
+      </div>
+      <p class="anime-desc" id="detailSynopsis"></p>
+    </div>
+
+    <div class="episode-list-section">
+      <div class="ep-list-head">
+        <h3 class="dl-heading" style="margin:0">Daftar Episode</h3>
+        <div class="ep-list-controls">
+          <input type="text" id="epSearch" class="ep-search" placeholder="Cari episode...">
+          <button type="button" id="epSortBtn" class="icon-btn" title="Urutan episode" aria-label="Urutan episode">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
+          </button>
+          <button type="button" id="epViewBtn" class="icon-btn" title="Ganti tampilan" aria-label="Ganti tampilan">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="ep-list" id="epList">
+        <div class="skeleton" style="height:56px;margin-bottom:8px"></div>
+        <div class="skeleton" style="height:56px;margin-bottom:8px"></div>
+        <div class="skeleton" style="height:56px"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="/app.js"></script>
+</body>
+</html>

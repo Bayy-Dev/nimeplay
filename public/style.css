@@ -365,6 +365,144 @@ main { max-width: 1180px; margin: 0 auto; padding: 0 28px 64px; }
 
 .back-btn:hover { border-color: var(--teal); color: var(--teal); }
 
+/* ---------- Detail page ---------- */
+
+.detail-layout {
+  max-width: 900px;
+  margin-top: 20px;
+}
+
+.detail-hero {
+  border-radius: 12px;
+  min-height: 280px;
+  background: var(--panel) center/cover no-repeat;
+  border: 1px solid var(--line);
+}
+
+.detail-title {
+  font-size: 28px;
+  margin: 18px 0 10px;
+}
+
+.detail-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.status-chip { color: var(--teal); border-color: var(--teal); }
+
+.detail-genres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.genre-chip { background: transparent; color: var(--muted); }
+
+.detail-cta {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 16px 0;
+}
+
+.action-btn-active { color: var(--teal); border-color: var(--teal); }
+
+.detail-synopsis-wrap { margin: 20px 0; }
+
+.dl-heading-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 22px 0 10px;
+}
+
+.episode-list-section { margin: 24px 0 40px; }
+
+.ep-list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.ep-list-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.ep-search {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  min-width: 160px;
+}
+
+.ep-search::placeholder { color: var(--muted); }
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.icon-btn:hover { border-color: var(--teal); color: var(--teal); }
+
+.ep-list-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ep-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px 16px;
+  color: var(--text);
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.ep-row:hover { border-color: var(--accent); }
+
+.ep-row-views {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.ep-list-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+  gap: 8px;
+}
+
+.ep-list-grid .ep-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .player-wrap {
   background: #000;
   border-radius: 12px;
