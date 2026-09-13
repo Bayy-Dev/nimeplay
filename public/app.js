@@ -362,6 +362,7 @@ async function loadEpisode(slug, epNumber) {
   qs("#playerStatus").style.display = "none";
   qs("#playerFrame").style.display = "none";
   qs("#playerFrame").src = "about:blank";
+  if (qs("#playerClickShield")) qs("#playerClickShield").style.display = "none";
   qs("#skipServerBtn").style.display = "none";
   qs("#serverToast").style.display = "none";
   showLoadingPopup("Memuat episode...");
@@ -456,18 +457,26 @@ function attemptLoad(candidate, loadingMsg, onFail) {
   showLoadingPopup(loadingMsg);
   clearTimeout(playTimeoutId);
 
-  // Sandbox iframe buat block redirect/popup iklan. VidHide sengaja ngecek
-  // apakah dia bisa buka popup (window.open) — kalau diblokir total dia
-  // nolak muter video. Makanya khusus VidHide kita kasih izin "allow-popups"
-  // biar cek-nya lolos, TAPI "allow-top-navigation" tetap gak diizinkan,
-  // jadi tab/situs kita sendiri tidak bisa di-redirect paksa oleh iklan di
-  // dalam iframe itu (paling banter kebuka tab baru yang tinggal ditutup).
-  // Provider lain (Mega, dll) tetap disandbox ketat tanpa allow-popups.
+  // VidHide sengaja ngecek atribut sandbox APA PUN pada iframe-nya — kalau
+  // ada, dia nolak muter video sama sekali ("This video is not available
+  // due to sandboxed iframe!"). Jadi sandbox WAJIB dilepas total khusus
+  // VidHide, gak ada opsi tengah (allow-popups dkk tetap kedeteksi & ditolak).
+  // Sebagai gantinya, klik pertama di atas iframe VidHide diserap oleh
+  // "click shield" (div transparan) — klik pertama itu biasanya yang
+  // men-trigger popup/redirect iklan di provider ber-iklan begini. Setelah
+  // shield diklik & hilang, klik berikutnya baru tembus ke player asli.
+  // Provider lain (Mega, dll) tetap disandbox ketat, gak butuh shield.
   const isVidhide = (candidate.provider || "").toLowerCase().includes("vidhide");
+  const shield = qs("#playerClickShield");
   if (isVidhide) {
-    frame.setAttribute("sandbox", "allow-scripts allow-same-origin allow-presentation allow-popups");
+    frame.removeAttribute("sandbox");
+    if (shield) {
+      shield.style.display = "flex";
+      shield.onclick = () => { shield.style.display = "none"; };
+    }
   } else {
     frame.setAttribute("sandbox", "allow-scripts allow-same-origin allow-presentation");
+    if (shield) shield.style.display = "none";
   }
 
   function cleanup() {
