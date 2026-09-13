@@ -1,8 +1,11 @@
 # Yozora — Nonton Anime (AnimeKAI Web)
 
 Web nonton anime sederhana. Frontend statis (HTML/CSS/JS) + backend Flask
-(scraper AnimeKAI, diadaptasi dari `liostark99-code/AnimeKAI-API`) jadi satu
-project, deploy ke Vercel sekaligus.
+(proxy ke ShivraAPI Winbu — `https://shivraapi.my.id/wbn`) jadi satu project,
+deploy ke Vercel sekaligus.
+
+Player pakai `<iframe>` karena link stream dari API ini berupa embed
+(MEGA, VidHide, Kraken, dll), bukan link `.m3u8` langsung.
 
 ## Struktur
 
@@ -32,8 +35,11 @@ Backend jalan di `http://localhost:5000`. Untuk lihat frontend, buka file di
 
 ## Catatan
 
-- Semua data (search, episode, link streaming) di-scrape langsung dari
-  `anikai.to` saat request masuk — tidak ada database.
-- Kalau AnimeKAI ubah struktur HTML mereka, endpoint scraping bisa berhenti
-  bekerja dan perlu disesuaikan lagi di `api/index.py`.
+- Semua data (home, search, detail, episode) diproksi langsung dari ShivraAPI
+  Winbu saat request masuk — tidak ada database di sisi kita.
+- Field pada `/home` dan `/search` divalidasi longgar di `app.js`
+  (`normalizeItem`) karena nama field API pihak ketiga bisa sedikit berbeda
+  antar endpoint. Kalau tampilan kartu kosong/aneh, cek nama field asli di
+  response API tsb dan sesuaikan `normalizeItem`.
+- Kalau ShivraAPI ubah struktur endpoint, cukup sesuaikan `api/index.py`.
 - Untuk penggunaan pribadi/edukasi.
