@@ -110,7 +110,7 @@ async function initHome() {
   loadContinueWatching();
   loadHero();
   loadTopSeries();
-  loadLatest();
+  loadAnimeSections();
 }
 
 let heroData = [];
@@ -185,16 +185,76 @@ async function loadTopSeries() {
   }
 }
 
-async function loadLatest() {
-  const shelf = qs("#latestShelf");
+/* "Episode end" dari API nandain series itu udah tamat — ini satu-satunya
+   sinyal "completed" yang kita punya, gak ada field status terpisah. */
+function isCompletedEpisode(ep) {
+  return /end/i.test(ep || "");
+}
+
+/* Ambil angka episode buat badge "N Eps" di kartu. Kalau teksnya "Episode
+   end" (gak ada angka), tampilin "Tamat" aja daripada karang angka palsu. */
+function episodeCountLabel(ep) {
+  const m = (ep || "").match(/(\d+)/);
+  if (m) return `${m[1]} Eps`;
+  if (isCompletedEpisode(ep)) return "Tamat";
+  return "";
+}
+
+/* Kartu anime dengan badge status (New/Completed) di kiri-atas, rating di
+   kanan-atas (cuma ditampilin kalau datanya ada — /latest gak nyediain
+   rating per-item, jadi kita cross-reference ke top_series dari /home;
+   kalau gak ketemu di situ juga, badge rating disembunyikan, bukan dikosongin
+   dengan angka karangan). */
+function animeCardHTML(raw, status, rating) {
+  const title = raw.title || raw.name || "Tanpa judul";
+  const slug = raw.slug || (raw.url ? slugFromUrl(raw.url) : "");
+  if (!slug) return "";
+  const cover = raw.cover || raw.poster || raw.image || "";
+  const epsLabel = episodeCountLabel(raw.episode || raw.current_episode);
+  const statusClass = status === "Completed" ? "status-completed" : "status-new";
+  return `
+    <a class="card" href="/detail.html?slug=${encodeURIComponent(slug)}">
+      <div class="poster">
+        <span class="status-badge ${statusClass}">${status}</span>
+        ${rating ? `<span class="rating-badge">★ ${esc(rating)}</span>` : ""}
+        <img src="${esc(cover)}" alt="${esc(title)}" loading="lazy">
+        ${epsLabel ? `<div class="badges"><span class="sub">${esc(epsLabel)}</span></div>` : ""}
+      </div>
+      <div class="title">${esc(title)}</div>
+    </a>`;
+}
+
+async function loadAnimeSections() {
+  const newGrid = qs("#newUpdateGrid");
+  const completedSection = qs("#completedSection");
+  const completedGrid = qs("#completedGrid");
   try {
-    const data = await api("/latest");
-    const items = data.latest_update || data.items || data.list || (Array.isArray(data) ? data : []);
-    shelf.innerHTML = items.length
-      ? items.map(cardHTML).join("")
+    const [latestData, homeData] = await Promise.all([
+      api("/latest"),
+      api("/home").catch(() => ({})),
+    ]);
+    const items = latestData.list || latestData.items || (Array.isArray(latestData) ? latestData : []);
+
+    // Rating gak ada di /latest — cocokkan slug ke top_series (/home) buat
+    // kartu yang kebetulan juga masuk trending, sisanya tanpa badge rating.
+    const ratingMap = {};
+    (homeData.top_series || []).forEach(t => { if (t.slug) ratingMap[t.slug] = t.rating; });
+
+    const newItems = items.filter(i => !isCompletedEpisode(i.episode));
+    const completedItems = items.filter(i => isCompletedEpisode(i.episode));
+
+    newGrid.innerHTML = newItems.length
+      ? newItems.map(i => animeCardHTML(i, "New", ratingMap[i.slug])).join("")
       : `<div class="empty">Belum ada rilisan terbaru.</div>`;
+
+    if (completedItems.length) {
+      completedSection.style.display = "";
+      completedGrid.innerHTML = completedItems.map(i => animeCardHTML(i, "Completed", ratingMap[i.slug])).join("");
+    } else {
+      completedSection.style.display = "none";
+    }
   } catch (e) {
-    shelf.innerHTML = `<div class="error">Gagal memuat: ${esc(e.message)}</div>`;
+    newGrid.innerHTML = `<div class="error">Gagal memuat: ${esc(e.message)}</div>`;
   }
 }
 
