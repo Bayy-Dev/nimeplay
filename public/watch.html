@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Yozora — Nonton</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <a href="/" class="brand display">YOZO<span>RA</span></a>
+  <form class="search-form" id="searchForm">
+    <input type="text" id="searchInput" placeholder="Cari judul anime...">
+    <button type="submit" aria-label="Cari">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </button>
+  </form>
+</header>
+
+<main>
+  <div class="watch-layout">
+    <div>
+      <div class="player-wrap" id="playerWrap">
+        <div class="player-status" id="playerStatus">Pilih episode untuk mulai nonton</div>
+        <video id="video" controls playsinline style="display:none"></video>
+      </div>
+
+      <div class="controls-row">
+        <div class="pill-group" id="langGroup"></div>
+        <div class="pill-group" id="serverGroup"></div>
+      </div>
+
+      <h1 class="anime-title display" id="animeTitle">Memuat...</h1>
+      <p class="anime-desc" id="animeDesc"></p>
+      <a href="/" class="back-link">&larr; Kembali ke beranda</a>
+    </div>
+
+    <aside class="side-panel">
+      <h3>Episode</h3>
+      <div class="ep-grid" id="epGrid">
+        <div class="skeleton" style="height:38px"></div>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.15/dist/hls.min.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>
