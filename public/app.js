@@ -295,6 +295,7 @@ function setStatus(msg, showSpinner = true) {
   const status = qs("#playerStatus");
   const frame = qs("#playerFrame");
   const skipBtn = qs("#skipServerBtn");
+  const toast = qs("#serverToast");
   status.style.display = "flex";
   status.innerHTML = showSpinner
     ? `<div class="status-spinner"></div><span>${esc(msg)}</span>`
@@ -302,6 +303,7 @@ function setStatus(msg, showSpinner = true) {
   frame.style.display = "none";
   frame.src = "about:blank";
   if (skipBtn) skipBtn.style.display = "none";
+  if (toast) toast.style.display = "none";
 }
 
 async function loadEpisode(slug, epNumber) {
@@ -366,10 +368,12 @@ function buildPlayQueue(streams) {
 let playQueue = [];
 let playIndex = 0;
 let playTimeoutId = null;
+let switchedToMega = false;
 
 function startAutoPlay(streams) {
   playQueue = buildPlayQueue(streams);
   playIndex = 0;
+  switchedToMega = false;
   if (!playQueue.length) {
     setStatus("Tidak ada sumber streaming untuk episode ini.");
     return;
@@ -377,20 +381,17 @@ function startAutoPlay(streams) {
   tryPlayCurrent();
 }
 
-function tryPlayCurrent() {
-  if (playIndex >= playQueue.length) {
-    setStatus("Semua server gagal dimuat untuk episode ini.");
-    return;
-  }
-  const candidate = playQueue[playIndex];
-  const frame = qs("#playerFrame");
-  const status = qs("#playerStatus");
+function findMegaCandidate() {
+  // playQueue sudah terurut kualitas tertinggi dulu, jadi entri Mega
+  // pertama yang ketemu otomatis kualitas terbaik yang tersedia.
+  return playQueue.find(c => (c.provider || "").toLowerCase().includes("mega")) || null;
+}
 
-  setStatus(
-    playIndex === 0
-      ? `Memuat ${candidate.provider} ${candidate.quality}...`
-      : `Video gagal dimuat, mengganti ke server ${candidate.provider} ${candidate.quality}...`
-  );
+/* Muat satu kandidat ke iframe, dengan deteksi gagal (error/timeout).
+   onFail dipanggil kalau kandidat ini gagal dimuat. */
+function attemptLoad(candidate, statusMsg, onFail) {
+  const frame = qs("#playerFrame");
+  setStatus(statusMsg);
   clearTimeout(playTimeoutId);
 
   function cleanup() {
@@ -400,14 +401,13 @@ function tryPlayCurrent() {
   }
   function onLoad() {
     cleanup();
-    status.style.display = "none";
+    qs("#playerStatus").style.display = "none";
     frame.style.display = "block";
-    showSkipButton();
+    updateSkipButton(candidate);
   }
   function onError() {
     cleanup();
-    playIndex++;
-    tryPlayCurrent();
+    onFail();
   }
 
   frame.addEventListener("load", onLoad, { once: true });
@@ -420,15 +420,61 @@ function tryPlayCurrent() {
   playTimeoutId = setTimeout(onError, LOAD_TIMEOUT_MS);
 }
 
-function showSkipButton() {
-  const btn = qs("#skipServerBtn");
-  if (!btn) return;
-  btn.style.display = "block";
-  btn.onclick = () => {
+function tryPlayCurrent() {
+  if (playIndex >= playQueue.length) {
+    setStatus("Semua server gagal dimuat untuk episode ini.");
+    return;
+  }
+  const candidate = playQueue[playIndex];
+  const msg = playIndex === 0
+    ? `Memuat ${candidate.provider} ${candidate.quality}...`
+    : `Video gagal dimuat, mengganti ke server ${candidate.provider} ${candidate.quality}...`;
+  attemptLoad(candidate, msg, () => {
     playIndex++;
     tryPlayCurrent();
-  };
+  });
 }
+
+/* Tombol "Ganti ke server Mega" — cuma muncul kalau server yang lagi
+   jalan bukan Mega dan ada opsi Mega buat episode ini. Sekali dipakai,
+   langsung hilang biar gak ke-klik dobel; klik lagi (kalau somehow masih
+   kepencet) cuma kasih notifikasi, gak pindah-pindah lagi. */
+function updateSkipButton(candidate) {
+  const btn = qs("#skipServerBtn");
+  if (!btn) return;
+  const isMega = (candidate.provider || "").toLowerCase().includes("mega");
+  if (isMega || switchedToMega || !findMegaCandidate()) {
+    btn.style.display = "none";
+  } else {
+    btn.style.display = "inline-block";
+  }
+}
+
+function showToast(msg) {
+  const toast = qs("#serverToast");
+  if (!toast) return;
+  toast.textContent = msg;
+  toast.style.display = "inline-block";
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => { toast.style.display = "none"; }, 3000);
+}
+
+qs("#skipServerBtn")?.addEventListener("click", () => {
+  if (switchedToMega) {
+    showToast("Server sudah diganti ke Mega.");
+    return;
+  }
+  const candidate = findMegaCandidate();
+  if (!candidate) {
+    showToast("Server Mega tidak tersedia untuk episode ini.");
+    return;
+  }
+  switchedToMega = true;
+  qs("#skipServerBtn").style.display = "none";
+  attemptLoad(candidate, `Mengganti ke server Mega ${candidate.quality}...`, () => {
+    setStatus("Server Mega juga gagal dimuat untuk episode ini.");
+  });
+});
 
 /* Best-effort: sebagian provider embed ngirim postMessage saat video di
    dalamnya gagal/error. Kita dengerin dan coba deteksi pola umum kata
