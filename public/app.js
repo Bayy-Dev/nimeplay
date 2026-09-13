@@ -47,9 +47,67 @@ function cardHTML(raw) {
     </a>`;
 }
 
+/* ---------- Continue Watching (localStorage, per-anime) ---------- */
+/* Catatan: iframe provider (Mega, dll) beda origin, jadi currentTime video
+   di dalamnya gak bisa dibaca dari sini. Yang bisa dilacak cuma "episode
+   terakhir yang dibuka per anime", bukan detik terakhir nonton. */
+
+const CW_KEY = "yozora_continue_watching";
+const CW_MAX = 20;
+
+function getContinueWatching() {
+  try {
+    const list = JSON.parse(localStorage.getItem(CW_KEY));
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveContinueWatching(entry) {
+  let list = getContinueWatching().filter(i => i.slug !== entry.slug);
+  list.unshift(entry);
+  if (list.length > CW_MAX) list = list.slice(0, CW_MAX);
+  try { localStorage.setItem(CW_KEY, JSON.stringify(list)); } catch {}
+}
+
+function removeContinueWatching(slug) {
+  const list = getContinueWatching().filter(i => i.slug !== slug);
+  try { localStorage.setItem(CW_KEY, JSON.stringify(list)); } catch {}
+}
+
+function loadContinueWatching() {
+  const section = qs("#continueSection");
+  const shelf = qs("#continueShelf");
+  if (!section || !shelf) return;
+  const list = getContinueWatching();
+  if (!list.length) { section.style.display = "none"; return; }
+  section.style.display = "";
+
+  shelf.innerHTML = list.map(item => `
+    <a class="card cw-card" href="/watch.html?slug=${encodeURIComponent(item.slug)}&ep=${encodeURIComponent(item.episodeSlug)}">
+      <button type="button" class="cw-remove" data-slug="${esc(item.slug)}" aria-label="Hapus dari lanjut nonton">&times;</button>
+      <div class="poster">
+        <img src="${esc(item.cover)}" alt="${esc(item.title)}" loading="lazy">
+        <div class="badges"><span class="sub">EP ${esc(item.episodeNumber)}</span></div>
+      </div>
+      <div class="title">${esc(item.title)}</div>
+    </a>`).join("");
+
+  qsa(".cw-remove", shelf).forEach(btn => {
+    btn.addEventListener("click", e => {
+      e.preventDefault();
+      e.stopPropagation();
+      removeContinueWatching(btn.dataset.slug);
+      loadContinueWatching();
+    });
+  });
+}
+
 /* ---------- Home page ---------- */
 
 async function initHome() {
+  loadContinueWatching();
   loadHero();
   loadTopSeries();
   loadLatest();
@@ -160,8 +218,7 @@ async function runSearch(keyword) {
 
 /* ---------- Watch page ---------- */
 
-let currentStreams = [];
-let currentQuality = null;
+let currentAnime = null;
 
 async function initWatch() {
   const params = new URLSearchParams(location.search);
@@ -176,6 +233,12 @@ async function initWatch() {
     qs("#animeTitle").innerHTML = esc(info.title);
     qs("#animeDesc").textContent = info.synopsis || "";
     document.title = `${info.title} — Yozora`;
+
+    currentAnime = {
+      slug,
+      title: info.title || "Tanpa judul",
+      cover: info.cover || info.poster || info.image || "",
+    };
 
     const episodes = info.episodes || [];
     renderEpisodes(episodes);
@@ -201,19 +264,30 @@ function renderEpisodes(episodes) {
   // API returns newest-first; show oldest-first for natural viewing order.
   const ordered = [...episodes].reverse();
   grid.innerHTML = ordered.map(ep => `
-    <button class="ep-btn" data-slug="${esc(ep.slug)}">${esc(episodeNumber(ep))}</button>
+    <button class="ep-btn" data-slug="${esc(ep.slug)}" data-num="${esc(episodeNumber(ep))}">${esc(episodeNumber(ep))}</button>
   `).join("");
 
   qsa(".ep-btn", grid).forEach(btn => {
     btn.addEventListener("click", () => {
       qsa(".ep-btn", grid).forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
-      loadEpisode(btn.dataset.slug);
+      loadEpisode(btn.dataset.slug, btn.dataset.num);
     });
   });
 
   const buttons = qsa(".ep-btn", grid);
-  const target = buttons[buttons.length - 1];
+
+  // Resume priority: ?ep= di URL > episode terakhir tersimpan (localStorage) > episode terbaru.
+  const params = new URLSearchParams(location.search);
+  const wantedEp = params.get("ep");
+  let target = wantedEp ? buttons.find(b => b.dataset.slug === wantedEp) : null;
+
+  if (!target && currentAnime) {
+    const cw = getContinueWatching().find(i => i.slug === currentAnime.slug);
+    if (cw) target = buttons.find(b => b.dataset.slug === cw.episodeSlug);
+  }
+
+  if (!target) target = buttons[buttons.length - 1];
   if (target) target.click();
 }
 
@@ -226,69 +300,115 @@ function setStatus(msg) {
   frame.src = "about:blank";
 }
 
-async function loadEpisode(slug) {
+async function loadEpisode(slug, epNumber) {
   setStatus("Memuat episode...");
-  qs("#qualityGroup").innerHTML = "";
-  qs("#providerGroup").innerHTML = "";
   qs("#downloadList").innerHTML = "";
   try {
     const data = await api(`/episode/${encodeURIComponent(slug)}`);
-    currentStreams = data.stream || [];
     renderDownloads(data.downloads || []);
 
-    if (!currentStreams.length) {
-      setStatus("Tidak ada sumber streaming untuk episode ini.");
-      return;
+    if (currentAnime) {
+      saveContinueWatching({
+        slug: currentAnime.slug,
+        title: currentAnime.title,
+        cover: currentAnime.cover,
+        episodeSlug: slug,
+        episodeNumber: epNumber || slug,
+        updatedAt: Date.now(),
+      });
     }
 
-    currentQuality = currentStreams.find(s => s.quality === "720p") ? "720p" : currentStreams[currentStreams.length - 1].quality;
-
-    qs("#qualityGroup").innerHTML = currentStreams.map(s =>
-      `<button class="pill ${s.quality === currentQuality ? "active" : ""}" data-q="${esc(s.quality)}">${esc(s.quality)}</button>`
-    ).join("");
-
-    qsa("#qualityGroup .pill").forEach(btn => {
-      btn.addEventListener("click", () => {
-        currentQuality = btn.dataset.q;
-        qsa("#qualityGroup .pill").forEach(b => b.classList.remove("active"));
-        btn.classList.add("active");
-        renderProviders();
-      });
-    });
-
-    renderProviders();
+    startAutoPlay(data.stream || []);
   } catch (e) {
     setStatus(`Gagal memuat episode: ${e.message}`);
   }
 }
 
-function renderProviders() {
-  const group = currentStreams.find(s => s.quality === currentQuality);
-  const links = (group && group.links) || [];
-  const container = qs("#providerGroup");
-  container.innerHTML = links.map((l, i) =>
-    `<button class="pill lang ${i === 0 ? "active" : ""}" data-url="${esc(l.url)}">${esc(l.provider)}</button>`
-  ).join("");
+/* ---------- Auto server selection (no manual picking) ---------- */
+/* Urutan preferensi: kualitas 1080p dulu, di dalam kualitas yang sama
+   VidHide dicoba lebih dulu, baru Mega, baru provider lain.
+   Kalau satu server gagal dimuat, otomatis lanjut ke kandidat berikutnya. */
 
-  qsa("#providerGroup .pill").forEach(btn => {
-    btn.addEventListener("click", () => {
-      qsa("#providerGroup .pill").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      playEmbed(btn.dataset.url);
-    });
-  });
+const PROVIDER_PRIORITY = ["vidhide", "mega"];
+const QUALITY_PRIORITY = ["1080p", "720p", "480p", "360p"];
+const LOAD_TIMEOUT_MS = 8000;
 
-  if (links.length) playEmbed(links[0].url);
-  else setStatus("Tidak ada provider untuk kualitas ini.");
+function providerRank(name) {
+  const n = (name || "").toLowerCase();
+  const idx = PROVIDER_PRIORITY.findIndex(p => n.includes(p));
+  return idx === -1 ? PROVIDER_PRIORITY.length : idx;
 }
 
-function playEmbed(url) {
-  const status = qs("#playerStatus");
+function qualityRank(q) {
+  const idx = QUALITY_PRIORITY.indexOf(q);
+  return idx === -1 ? QUALITY_PRIORITY.length : idx;
+}
+
+function buildPlayQueue(streams) {
+  const flat = [];
+  streams.forEach(group => {
+    (group.links || []).forEach(l => {
+      flat.push({ quality: group.quality, provider: l.provider, url: l.url });
+    });
+  });
+  flat.sort((a, b) => {
+    const qa = qualityRank(a.quality), qb = qualityRank(b.quality);
+    if (qa !== qb) return qa - qb;
+    return providerRank(a.provider) - providerRank(b.provider);
+  });
+  return flat;
+}
+
+let playQueue = [];
+let playIndex = 0;
+let playTimeoutId = null;
+
+function startAutoPlay(streams) {
+  playQueue = buildPlayQueue(streams);
+  playIndex = 0;
+  if (!playQueue.length) {
+    setStatus("Tidak ada sumber streaming untuk episode ini.");
+    return;
+  }
+  tryPlayCurrent();
+}
+
+function tryPlayCurrent() {
+  if (playIndex >= playQueue.length) {
+    setStatus("Semua server gagal dimuat untuk episode ini.");
+    return;
+  }
+  const candidate = playQueue[playIndex];
   const frame = qs("#playerFrame");
-  if (!url) { setStatus("Link tidak tersedia."); return; }
-  frame.src = url;
-  status.style.display = "none";
-  frame.style.display = "block";
+  const status = qs("#playerStatus");
+
+  setStatus(`Memuat ${candidate.provider} ${candidate.quality}...`);
+  clearTimeout(playTimeoutId);
+
+  function cleanup() {
+    frame.removeEventListener("load", onLoad);
+    frame.removeEventListener("error", onError);
+    clearTimeout(playTimeoutId);
+  }
+  function onLoad() {
+    cleanup();
+    status.style.display = "none";
+    frame.style.display = "block";
+  }
+  function onError() {
+    cleanup();
+    playIndex++;
+    tryPlayCurrent();
+  }
+
+  frame.addEventListener("load", onLoad, { once: true });
+  frame.addEventListener("error", onError, { once: true });
+  frame.src = candidate.url;
+
+  // Jaga-jaga: iframe cross-origin bisa "load" walau video di dalamnya
+  // sebenarnya error (gak kedeteksi dari luar). Timeout ini cuma nangkep
+  // kasus koneksi/embed yang beneran gak pernah selesai dimuat.
+  playTimeoutId = setTimeout(onError, LOAD_TIMEOUT_MS);
 }
 
 function renderDownloads(downloads) {
@@ -305,6 +425,7 @@ function renderDownloads(downloads) {
 }
 
 /* ---------- Search form (shared) ---------- */
+
 
 function bindSearchForm() {
   const form = qs("#searchForm");
