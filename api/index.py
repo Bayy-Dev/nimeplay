@@ -3,6 +3,7 @@ from flask_cors import CORS
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+from urllib.parse import unquote
 
 app = Flask(__name__)
 CORS(app)
@@ -82,7 +83,10 @@ def tag_source(data):
 
 
 def split_source(slug):
-    """slug diawali 'otd:' -> asalnya Otakudesu (cadangan). Selain itu -> Winbu (utama)."""
+    """slug diawali 'otd:' -> asalnya Otakudesu (cadangan). Selain itu -> Winbu (utama).
+    Vercel kadang gak ngedecode %3A -> ':' sebelum sampe ke Flask, jadi decode
+    manual dulu di sini biar gak salah routing ke upstream."""
+    slug = unquote(slug)
     if slug.startswith(SRC_PREFIX):
         return UPSTREAM_OTD, slug[len(SRC_PREFIX):]
     return UPSTREAM_WBN, slug
