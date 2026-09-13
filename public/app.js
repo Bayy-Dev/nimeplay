@@ -456,13 +456,16 @@ function attemptLoad(candidate, loadingMsg, onFail) {
   showLoadingPopup(loadingMsg);
   clearTimeout(playTimeoutId);
 
-  // Sandbox iframe buat block redirect/popup iklan — tapi sebagian provider
-  // (VidHide) sengaja ngedeteksi sandbox dan nolak muter video kalau
-  // dibatasi. Untuk provider begitu, sandbox dilepas biar tetep bisa nonton;
-  // provider lain (Mega, dll) tetap disandbox biar iklannya keblokir.
+  // Sandbox iframe buat block redirect/popup iklan. VidHide sengaja ngecek
+  // apakah dia bisa buka popup (window.open) — kalau diblokir total dia
+  // nolak muter video. Makanya khusus VidHide kita kasih izin "allow-popups"
+  // biar cek-nya lolos, TAPI "allow-top-navigation" tetap gak diizinkan,
+  // jadi tab/situs kita sendiri tidak bisa di-redirect paksa oleh iklan di
+  // dalam iframe itu (paling banter kebuka tab baru yang tinggal ditutup).
+  // Provider lain (Mega, dll) tetap disandbox ketat tanpa allow-popups.
   const isVidhide = (candidate.provider || "").toLowerCase().includes("vidhide");
   if (isVidhide) {
-    frame.removeAttribute("sandbox");
+    frame.setAttribute("sandbox", "allow-scripts allow-same-origin allow-presentation allow-popups");
   } else {
     frame.setAttribute("sandbox", "allow-scripts allow-same-origin allow-presentation");
   }
