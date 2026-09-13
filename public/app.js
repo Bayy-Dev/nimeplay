@@ -231,13 +231,27 @@ async function initWatch() {
   try {
     const info = await api(`/detail/${encodeURIComponent(slug)}`);
     qs("#animeTitle").innerHTML = esc(info.title);
-    qs("#animeDesc").textContent = info.synopsis || "";
     document.title = `${info.title} — Yozora`;
+
+    const cover = info.cover || info.poster || info.image || "";
+    const coverEl = qs("#animeCover");
+    if (cover) { coverEl.src = cover; coverEl.style.display = ""; }
+    else { coverEl.style.display = "none"; }
+
+    setupDescription(info.synopsis || "");
+
+    // Field-field ini opsional tergantung data dari upstream; kalau gak ada, disembunyikan.
+    const views = info.views || info.view_count || info.viewers || "";
+    const date = info.release_date || info.released || info.updated_at || info.aired || "";
+    const viewsEl = qs("#infoViews");
+    if (views) { viewsEl.textContent = `${esc(views)}`; viewsEl.style.display = ""; }
+    const dateEl = qs("#infoDate");
+    if (date) { dateEl.textContent = `${esc(date)}`; dateEl.style.display = ""; }
 
     currentAnime = {
       slug,
       title: info.title || "Tanpa judul",
-      cover: info.cover || info.poster || info.image || "",
+      cover,
     };
 
     const episodes = info.episodes || [];
@@ -246,6 +260,24 @@ async function initWatch() {
     qs("#animeTitle").textContent = "Gagal memuat";
     qs("#animeDesc").textContent = e.message;
   }
+}
+
+function setupDescription(text) {
+  const desc = qs("#animeDesc");
+  const toggle = qs("#descToggle");
+  desc.textContent = text;
+  desc.classList.remove("expanded");
+  if (!toggle) return;
+  // Kasih tau kalau teksnya kepotong (butuh sedikit delay biar layout kehitung).
+  requestAnimationFrame(() => {
+    const isClamped = desc.scrollHeight > desc.clientHeight + 2;
+    toggle.style.display = isClamped ? "" : "none";
+    toggle.textContent = "Selengkapnya";
+  });
+  toggle.onclick = () => {
+    const expanded = desc.classList.toggle("expanded");
+    toggle.textContent = expanded ? "Sembunyikan" : "Selengkapnya";
+  };
 }
 
 function episodeNumber(ep) {
@@ -320,6 +352,8 @@ function setPlayerMessage(msg) {
 }
 
 async function loadEpisode(slug, epNumber) {
+  const infoEp = qs("#infoEpisode");
+  if (infoEp) infoEp.textContent = `Episode ${epNumber || slug}`;
   qs("#playerStatus").style.display = "none";
   qs("#playerFrame").style.display = "none";
   qs("#playerFrame").src = "about:blank";
@@ -426,6 +460,7 @@ function attemptLoad(candidate, loadingMsg, onFail) {
     cleanup();
     hideLoadingPopup();
     updateSkipButton(candidate);
+    updateQualityBadge(candidate);
   }
   function onError() {
     cleanup();
@@ -472,6 +507,40 @@ function updateSkipButton(candidate) {
     btn.style.display = "inline-block";
   }
 }
+
+function updateQualityBadge(candidate) {
+  const badge = qs("#qualityBadge");
+  if (!badge) return;
+  badge.textContent = `${candidate.quality} · ${candidate.provider}`;
+  badge.style.display = "inline-flex";
+}
+
+qs("#downloadJumpBtn")?.addEventListener("click", () => {
+  qs("#downloadSection")?.scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
+qs("#reportBtn")?.addEventListener("click", () => {
+  showToast("Terima kasih, laporanmu dicatat. Coba ganti server kalau video bermasalah.");
+});
+
+qs("#shareBtn")?.addEventListener("click", async () => {
+  const url = location.href;
+  const title = currentAnime?.title || document.title;
+  try {
+    if (navigator.share) {
+      await navigator.share({ title, url });
+      return;
+    }
+  } catch {
+    // user cancelled share sheet, or unsupported — fall through to clipboard
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+    showToast("Link disalin ke clipboard.");
+  } catch {
+    showToast("Gagal menyalin link.");
+  }
+});
 
 function showToast(msg) {
   const toast = qs("#serverToast");
