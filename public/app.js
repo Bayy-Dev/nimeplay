@@ -2,25 +2,46 @@ const API = "/api";
 
 function qs(sel, root = document) { return root.querySelector(sel); }
 function qsa(sel, root = document) { return [...root.querySelectorAll(sel)]; }
-function esc(s) { return (s || "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+function esc(s) { return (s || "").toString().replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 
 async function api(path) {
   const res = await fetch(`${API}${path}`);
   const data = await res.json();
   if (!res.ok || data.error) throw new Error(data.error || "Request gagal");
-  return data;
+  return data.data !== undefined ? data.data : data;
 }
 
-function cardHTML(item, rank) {
-  const badges = [];
-  if (item.sub_episodes) badges.push(`<span class="sub">SUB ${esc(item.sub_episodes)}</span>`);
-  if (item.dub_episodes) badges.push(`<span class="dub">DUB ${esc(item.dub_episodes)}</span>`);
+/* Normalize items from different endpoints (field names vary a bit). */
+function normalizeItem(item) {
+  return {
+    title: item.title || item.name || "Tanpa judul",
+    slug: item.slug || (item.url ? slugFromUrl(item.url) : ""),
+    cover: item.cover || item.poster || item.image || "",
+    rating: item.rating || "",
+    rank: item.rank || "",
+    episode: item.episode || item.current_episode || "",
+    type: item.type || "",
+  };
+}
+
+function slugFromUrl(url) {
+  try {
+    const parts = new URL(url).pathname.split("/").filter(Boolean);
+    return parts[parts.length - 1] || "";
+  } catch {
+    return "";
+  }
+}
+
+function cardHTML(raw) {
+  const item = normalizeItem(raw);
+  if (!item.slug) return "";
   return `
     <a class="card" href="/watch.html?slug=${encodeURIComponent(item.slug)}">
       <div class="poster">
-        ${rank ? `<span class="rank">${esc(rank)}</span>` : ""}
-        <img src="${esc(item.poster)}" alt="${esc(item.title)}" loading="lazy">
-        <div class="badges">${badges.join("")}</div>
+        ${item.rank ? `<span class="rank">${esc(item.rank.toString().replace("#", ""))}</span>` : ""}
+        <img src="${esc(item.cover)}" alt="${esc(item.title)}" loading="lazy">
+        ${item.episode ? `<div class="badges"><span class="sub">EP ${esc(item.episode)}</span></div>` : ""}
       </div>
       <div class="title">${esc(item.title)}</div>
     </a>`;
@@ -30,16 +51,8 @@ function cardHTML(item, rank) {
 
 async function initHome() {
   loadHero();
+  loadTopSeries();
   loadLatest();
-  loadTrending("NOW");
-
-  qsa("#trendTabs button").forEach(btn => {
-    btn.addEventListener("click", () => {
-      qsa("#trendTabs button").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      loadTrending(btn.dataset.tab);
-    });
-  });
 }
 
 let heroData = [];
@@ -50,7 +63,8 @@ async function loadHero() {
   const slot = qs("#heroSlot");
   try {
     const data = await api("/home");
-    heroData = (data.banner || []).slice(0, 6);
+    const list = (data.top_series || data.banner || []).slice(0, 5);
+    heroData = list.map(normalizeItem).filter(i => i.slug);
     if (!heroData.length) {
       slot.innerHTML = `<div class="error">Tidak ada data unggulan saat ini.</div>`;
       return;
@@ -71,17 +85,15 @@ function renderHero() {
   const slot = qs("#heroSlot");
   const item = heroData[heroIndex];
   const badges = [];
-  if (item.sub_episodes) badges.push(`<span class="chip sub">SUB ${esc(item.sub_episodes)}</span>`);
-  if (item.dub_episodes) badges.push(`<span class="chip dub">DUB ${esc(item.dub_episodes)}</span>`);
-  if (item.type) badges.push(`<span class="chip">${esc(item.type)}</span>`);
+  if (item.rank) badges.push(`<span class="chip">Peringkat ${esc(item.rank.toString().replace("#", ""))}</span>`);
   if (item.rating) badges.push(`<span class="chip">★ ${esc(item.rating)}</span>`);
+  if (item.type) badges.push(`<span class="chip">${esc(item.type)}</span>`);
 
   slot.innerHTML = `
-    <div class="hero" style="background-image:url('${esc(item.poster)}')">
+    <div class="hero" style="background-image:url('${esc(item.cover)}')">
       <div class="hero-body">
-        <p class="hero-tag">${esc(item.genres || "Rekomendasi")}</p>
+        <p class="hero-tag">Direkomendasikan</p>
         <h1 class="hero-title display">${esc(item.title)}</h1>
-        <p class="hero-desc">${esc(item.description)}</p>
         <div class="hero-meta">${badges.join("")}</div>
         <a class="btn-play" href="/watch.html?slug=${encodeURIComponent(item.slug)}">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="6,4 20,12 6,20"/></svg>
@@ -102,30 +114,29 @@ function renderHero() {
   });
 }
 
-async function loadLatest() {
-  const shelf = qs("#latestShelf");
+async function loadTopSeries() {
+  const grid = qs("#trendGrid");
   try {
     const data = await api("/home");
-    const items = data.latest_updates || [];
-    shelf.innerHTML = items.length
-      ? items.map(i => cardHTML(i)).join("")
-      : `<div class="empty">Belum ada rilisan terbaru.</div>`;
+    const items = data.top_series || [];
+    grid.innerHTML = items.length
+      ? items.map(cardHTML).join("")
+      : `<div class="empty">Belum ada data.</div>`;
   } catch (e) {
-    shelf.innerHTML = `<div class="error">Gagal memuat: ${esc(e.message)}</div>`;
+    grid.innerHTML = `<div class="error">Gagal memuat: ${esc(e.message)}</div>`;
   }
 }
 
-async function loadTrending(tab) {
-  const grid = qs("#trendGrid");
-  grid.innerHTML = `<div class="skeleton" style="height:220px"></div>`;
+async function loadLatest() {
+  const shelf = qs("#latestShelf");
   try {
-    const data = await api("/home");
-    const items = (data.top_trending || {})[tab] || [];
-    grid.innerHTML = items.length
-      ? items.map(i => cardHTML(i, i.rank)).join("")
-      : `<div class="empty">Tidak ada data untuk kategori ini.</div>`;
+    const data = await api("/latest");
+    const items = data.latest_update || data.items || data.list || (Array.isArray(data) ? data : []);
+    shelf.innerHTML = items.length
+      ? items.map(cardHTML).join("")
+      : `<div class="empty">Belum ada rilisan terbaru.</div>`;
   } catch (e) {
-    grid.innerHTML = `<div class="error">Gagal memuat: ${esc(e.message)}</div>`;
+    shelf.innerHTML = `<div class="error">Gagal memuat: ${esc(e.message)}</div>`;
   }
 }
 
@@ -137,9 +148,10 @@ async function runSearch(keyword) {
   const grid = qs("#searchGrid");
   grid.innerHTML = `<div class="skeleton" style="height:220px"></div>`;
   try {
-    const data = await api(`/search?keyword=${encodeURIComponent(keyword)}`);
-    grid.innerHTML = data.results.length
-      ? data.results.map(i => cardHTML(i)).join("")
+    const data = await api(`/search?q=${encodeURIComponent(keyword)}`);
+    const items = data.results || data.items || data.list || (Array.isArray(data) ? data : []);
+    grid.innerHTML = items.length
+      ? items.map(cardHTML).join("")
       : `<div class="empty">Tidak ditemukan. Coba kata kunci lain.</div>`;
   } catch (e) {
     grid.innerHTML = `<div class="error">Pencarian gagal: ${esc(e.message)}</div>`;
@@ -148,9 +160,8 @@ async function runSearch(keyword) {
 
 /* ---------- Watch page ---------- */
 
-let hlsInstance = null;
-let currentServers = {};
-let currentLang = null;
+let currentStreams = [];
+let currentQuality = null;
 
 async function initWatch() {
   const params = new URLSearchParams(location.search);
@@ -161,22 +172,24 @@ async function initWatch() {
   }
 
   try {
-    const info = await api(`/anime/${encodeURIComponent(slug)}`);
-    qs("#animeTitle").innerHTML = `${esc(info.title)}${info.japanese_title ? `<small>${esc(info.japanese_title)}</small>` : ""}`;
-    qs("#animeDesc").textContent = info.description || "";
+    const info = await api(`/detail/${encodeURIComponent(slug)}`);
+    qs("#animeTitle").innerHTML = esc(info.title);
+    qs("#animeDesc").textContent = info.synopsis || "";
     document.title = `${info.title} — Yozora`;
 
-    if (!info.ani_id) {
-      qs("#epGrid").innerHTML = `<div class="error">ID anime tidak ditemukan.</div>`;
-      return;
-    }
-
-    const epData = await api(`/episodes/${encodeURIComponent(info.ani_id)}`);
-    renderEpisodes(epData.episodes || []);
+    const episodes = info.episodes || [];
+    renderEpisodes(episodes);
   } catch (e) {
     qs("#animeTitle").textContent = "Gagal memuat";
     qs("#animeDesc").textContent = e.message;
   }
+}
+
+function episodeNumber(ep) {
+  const fromSlug = (ep.slug || "").match(/episode-(\d+)/i);
+  if (fromSlug) return fromSlug[1];
+  const fromTitle = (ep.title || "").match(/(\d+)/);
+  return fromTitle ? fromTitle[1] : ep.title || "?";
 }
 
 function renderEpisodes(episodes) {
@@ -185,114 +198,110 @@ function renderEpisodes(episodes) {
     grid.innerHTML = `<div class="empty">Belum ada episode.</div>`;
     return;
   }
-  grid.innerHTML = episodes.map(ep => `
-    <button class="ep-btn" data-token="${esc(ep.token)}" data-num="${esc(ep.number)}">${esc(ep.number)}</button>
+  // API returns newest-first; show oldest-first for natural viewing order.
+  const ordered = [...episodes].reverse();
+  grid.innerHTML = ordered.map(ep => `
+    <button class="ep-btn" data-slug="${esc(ep.slug)}">${esc(episodeNumber(ep))}</button>
   `).join("");
 
   qsa(".ep-btn", grid).forEach(btn => {
     btn.addEventListener("click", () => {
       qsa(".ep-btn", grid).forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
-      loadServers(btn.dataset.token);
+      loadEpisode(btn.dataset.slug);
     });
   });
 
-  qsa(".ep-btn", grid)[0].click();
-}
-
-async function loadServers(token) {
-  setStatus("Memuat server...");
-  qs("#langGroup").innerHTML = "";
-  qs("#serverGroup").innerHTML = "";
-  try {
-    const data = await api(`/servers/${encodeURIComponent(token)}`);
-    currentServers = data.servers || {};
-    const langs = Object.keys(currentServers);
-    if (!langs.length) {
-      setStatus("Tidak ada server tersedia untuk episode ini.");
-      return;
-    }
-    currentLang = langs.includes("sub") ? "sub" : langs[0];
-    qs("#langGroup").innerHTML = langs.map(l =>
-      `<button class="pill lang ${l === currentLang ? "active" : ""}" data-lang="${esc(l)}">${esc(l.toUpperCase())}</button>`
-    ).join("");
-
-    qsa("#langGroup .pill").forEach(btn => {
-      btn.addEventListener("click", () => {
-        currentLang = btn.dataset.lang;
-        qsa("#langGroup .pill").forEach(b => b.classList.remove("active"));
-        btn.classList.add("active");
-        renderServerPills();
-      });
-    });
-
-    renderServerPills();
-  } catch (e) {
-    setStatus(`Gagal memuat server: ${e.message}`);
-  }
-}
-
-function renderServerPills() {
-  const list = currentServers[currentLang] || [];
-  const group = qs("#serverGroup");
-  group.innerHTML = list.map((s, i) =>
-    `<button class="pill ${i === 0 ? "active" : ""}" data-lid="${esc(s.link_id)}">${esc(s.name)}</button>`
-  ).join("");
-
-  qsa("#serverGroup .pill").forEach(btn => {
-    btn.addEventListener("click", () => {
-      qsa("#serverGroup .pill").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      loadSource(btn.dataset.lid);
-    });
-  });
-
-  if (list.length) loadSource(list[0].link_id);
-  else setStatus("Server tidak tersedia untuk pilihan ini.");
+  const buttons = qsa(".ep-btn", grid);
+  const target = buttons[buttons.length - 1];
+  if (target) target.click();
 }
 
 function setStatus(msg) {
   const status = qs("#playerStatus");
-  const video = qs("#video");
+  const frame = qs("#playerFrame");
   status.style.display = "flex";
   status.textContent = msg;
-  video.style.display = "none";
+  frame.style.display = "none";
+  frame.src = "about:blank";
 }
 
-async function loadSource(linkId) {
-  if (!linkId) { setStatus("Sumber tidak tersedia."); return; }
-  setStatus("Menyiapkan video...");
+async function loadEpisode(slug) {
+  setStatus("Memuat episode...");
+  qs("#qualityGroup").innerHTML = "";
+  qs("#providerGroup").innerHTML = "";
+  qs("#downloadList").innerHTML = "";
   try {
-    const data = await api(`/source/${encodeURIComponent(linkId)}`);
-    const source = (data.sources || [])[0];
-    if (!source || !source.file) { setStatus("Tidak ditemukan link video."); return; }
-    playVideo(source.file);
+    const data = await api(`/episode/${encodeURIComponent(slug)}`);
+    currentStreams = data.stream || [];
+    renderDownloads(data.downloads || []);
+
+    if (!currentStreams.length) {
+      setStatus("Tidak ada sumber streaming untuk episode ini.");
+      return;
+    }
+
+    currentQuality = currentStreams.find(s => s.quality === "720p") ? "720p" : currentStreams[currentStreams.length - 1].quality;
+
+    qs("#qualityGroup").innerHTML = currentStreams.map(s =>
+      `<button class="pill ${s.quality === currentQuality ? "active" : ""}" data-q="${esc(s.quality)}">${esc(s.quality)}</button>`
+    ).join("");
+
+    qsa("#qualityGroup .pill").forEach(btn => {
+      btn.addEventListener("click", () => {
+        currentQuality = btn.dataset.q;
+        qsa("#qualityGroup .pill").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        renderProviders();
+      });
+    });
+
+    renderProviders();
   } catch (e) {
-    setStatus(`Gagal memuat video: ${e.message}`);
+    setStatus(`Gagal memuat episode: ${e.message}`);
   }
 }
 
-function playVideo(url) {
-  const video = qs("#video");
+function renderProviders() {
+  const group = currentStreams.find(s => s.quality === currentQuality);
+  const links = (group && group.links) || [];
+  const container = qs("#providerGroup");
+  container.innerHTML = links.map((l, i) =>
+    `<button class="pill lang ${i === 0 ? "active" : ""}" data-url="${esc(l.url)}">${esc(l.provider)}</button>`
+  ).join("");
+
+  qsa("#providerGroup .pill").forEach(btn => {
+    btn.addEventListener("click", () => {
+      qsa("#providerGroup .pill").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      playEmbed(btn.dataset.url);
+    });
+  });
+
+  if (links.length) playEmbed(links[0].url);
+  else setStatus("Tidak ada provider untuk kualitas ini.");
+}
+
+function playEmbed(url) {
   const status = qs("#playerStatus");
-
-  if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
-
-  if (video.canPlayType("application/vnd.apple.mpegurl")) {
-    video.src = url;
-  } else if (window.Hls && window.Hls.isSupported()) {
-    hlsInstance = new Hls();
-    hlsInstance.loadSource(url);
-    hlsInstance.attachMedia(video);
-  } else {
-    status.style.display = "flex";
-    status.textContent = "Browser tidak mendukung pemutaran HLS.";
-    return;
-  }
-
+  const frame = qs("#playerFrame");
+  if (!url) { setStatus("Link tidak tersedia."); return; }
+  frame.src = url;
   status.style.display = "none";
-  video.style.display = "block";
-  video.play().catch(() => {});
+  frame.style.display = "block";
+}
+
+function renderDownloads(downloads) {
+  const list = qs("#downloadList");
+  if (!downloads.length) { list.innerHTML = ""; return; }
+  list.innerHTML = downloads.map(group => `
+    <div class="dl-row">
+      <span class="dl-quality">${esc(group.quality)}</span>
+      <div class="pill-group">
+        ${(group.links || []).map(l => `<a class="pill" href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.provider)}</a>`).join("")}
+      </div>
+    </div>
+  `).join("");
 }
 
 /* ---------- Search form (shared) ---------- */
