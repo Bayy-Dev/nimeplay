@@ -20,66 +20,66 @@
 
 <main>
   <div class="watch-layout">
-    <div>
-      <div id="loadingPopup" class="loading-popup" style="display:none">
-        <div class="status-spinner"></div>
-        <span id="loadingPopupText"></span>
-      </div>
-
-      <div class="player-wrap" id="playerWrap">
-        <div class="player-status" id="playerStatus">Pilih episode untuk mulai nonton</div>
-        <iframe id="playerFrame" style="display:none" allowfullscreen frameborder="0" referrerpolicy="no-referrer"></iframe>
-      </div>
-
-      <div class="player-actions">
-        <button type="button" id="skipServerBtn" class="skip-server-btn" style="display:none">Video gak muncul? Ganti ke server Mega</button>
-        <span id="serverToast" class="server-toast" style="display:none"></span>
-      </div>
-
-      <div class="info-card">
-        <img id="animeCover" class="info-poster" alt="" loading="lazy">
-        <div class="info-meta">
-          <h1 class="anime-title display" id="animeTitle">Memuat...</h1>
-          <div class="info-sub">
-            <span id="infoEpisode" class="info-episode"></span>
-            <span id="infoViews" class="info-stat" style="display:none"></span>
-            <span id="infoDate" class="info-stat" style="display:none"></span>
-          </div>
-          <p class="anime-desc" id="animeDesc"></p>
-          <button type="button" id="descToggle" class="desc-toggle" style="display:none">Selengkapnya</button>
-        </div>
-      </div>
-
-      <div class="action-row">
-        <span id="qualityBadge" class="action-btn action-badge" style="display:none"></span>
-        <button type="button" id="downloadJumpBtn" class="action-btn">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
-          Download
-        </button>
-        <button type="button" id="reportBtn" class="action-btn">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          Report
-        </button>
-        <button type="button" id="shareBtn" class="action-btn">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.6" x2="15.4" y2="6.4"/><line x1="8.6" y1="13.4" x2="15.4" y2="17.6"/></svg>
-          Share
-        </button>
-      </div>
-
-      <div id="downloadSection">
-        <h3 class="dl-heading">Unduh Episode</h3>
-        <div id="downloadList"></div>
-      </div>
-
-      <a href="/" class="back-link">&larr; Kembali ke beranda</a>
+    <div class="watch-toolbar">
+      <a href="/" class="back-btn">&larr; Kembali ke beranda</a>
     </div>
 
-    <aside class="side-panel">
+    <div id="loadingPopup" class="loading-popup" style="display:none">
+      <div class="status-spinner"></div>
+      <span id="loadingPopupText"></span>
+    </div>
+
+    <div class="player-wrap" id="playerWrap">
+      <div class="player-status" id="playerStatus">Pilih episode untuk mulai nonton</div>
+      <iframe id="playerFrame" style="display:none" allowfullscreen frameborder="0" referrerpolicy="no-referrer"></iframe>
+    </div>
+
+    <div class="player-actions">
+      <button type="button" id="skipServerBtn" class="skip-server-btn" style="display:none">Video gak muncul? Ganti ke server Mega</button>
+      <span id="serverToast" class="server-toast" style="display:none"></span>
+    </div>
+
+    <div class="info-card">
+      <img id="animeCover" class="info-poster" alt="" loading="lazy">
+      <div class="info-meta">
+        <h1 class="anime-title display" id="animeTitle">Memuat...</h1>
+        <div class="info-sub">
+          <span id="infoEpisode" class="info-episode"></span>
+          <span id="infoViews" class="info-stat" style="display:none"></span>
+          <span id="infoDate" class="info-stat" style="display:none"></span>
+        </div>
+        <p class="anime-desc" id="animeDesc"></p>
+        <button type="button" id="descToggle" class="desc-toggle" style="display:none">Selengkapnya</button>
+      </div>
+    </div>
+
+    <div class="action-row">
+      <span id="qualityBadge" class="action-btn action-badge" style="display:none"></span>
+      <button type="button" id="downloadJumpBtn" class="action-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+        Download
+      </button>
+      <button type="button" id="reportBtn" class="action-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Report
+      </button>
+      <button type="button" id="shareBtn" class="action-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.6" x2="15.4" y2="6.4"/><line x1="8.6" y1="13.4" x2="15.4" y2="17.6"/></svg>
+        Share
+      </button>
+    </div>
+
+    <div class="episode-section">
       <h3>Episode</h3>
       <div class="ep-grid" id="epGrid">
         <div class="skeleton" style="height:38px"></div>
       </div>
-    </aside>
+    </div>
+
+    <div id="downloadSection">
+      <h3 class="dl-heading">Unduh Episode</h3>
+      <div id="downloadList"></div>
+    </div>
   </div>
 </main>
 

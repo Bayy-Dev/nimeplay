@@ -337,11 +337,33 @@ main { max-width: 1180px; margin: 0 auto; padding: 0 28px 64px; }
 
 /* Watch page */
 .watch-layout {
-  display: grid;
-  grid-template-columns: 1fr 320px;
-  gap: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   margin-top: 20px;
+  max-width: 900px;
 }
+
+.watch-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 14px;
+  border-radius: 20px;
+}
+
+.back-btn:hover { border-color: var(--teal); color: var(--teal); }
 
 .player-wrap {
   background: #000;
@@ -545,17 +567,15 @@ main { max-width: 1180px; margin: 0 auto; padding: 0 28px 64px; }
 .action-badge { color: var(--accent); border-color: var(--accent-dim); cursor: default; }
 .action-badge:hover { color: var(--accent); border-color: var(--accent-dim); }
 
-.side-panel {
+.episode-section {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 14px;
-  max-height: 620px;
-  display: flex;
-  flex-direction: column;
+  margin: 4px 0 18px;
 }
 
-.side-panel h3 {
+.episode-section h3 {
   margin: 0 0 10px;
   font-size: 15px;
 }
@@ -564,6 +584,7 @@ main { max-width: 1180px; margin: 0 auto; padding: 0 28px 64px; }
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(46px, 1fr));
   gap: 6px;
+  max-height: 260px;
   overflow-y: auto;
   padding-right: 4px;
 }
@@ -610,18 +631,6 @@ main { max-width: 1180px; margin: 0 auto; padding: 0 28px 64px; }
   align-items: center;
 }
 
-.back-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 700;
-  margin: 18px 0 0;
-}
-
-.back-link:hover { color: var(--teal); }
-
 .skeleton {
   background: linear-gradient(90deg, var(--panel) 25%, var(--panel-raised) 37%, var(--panel) 63%);
   background-size: 400% 100%;
@@ -639,8 +648,6 @@ footer {
 }
 
 @media (max-width: 860px) {
-  .watch-layout { grid-template-columns: 1fr; }
-  .side-panel { max-height: 320px; }
   .site-header { padding: 12px 16px; flex-wrap: wrap; }
   main { padding: 0 16px 48px; }
 }
