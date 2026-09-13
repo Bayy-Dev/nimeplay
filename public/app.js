@@ -387,7 +387,7 @@ async function loadEpisode(slug, epNumber) {
    VidHide dicoba lebih dulu, baru Mega, baru provider lain.
    Kalau satu server gagal dimuat, otomatis lanjut ke kandidat berikutnya. */
 
-const PROVIDER_PRIORITY = ["vidhide", "mega"];
+const PROVIDER_PRIORITY = ["mega", "vidhide"];
 const QUALITY_PRIORITY = ["1080p", "720p", "480p", "360p"];
 const LOAD_TIMEOUT_MS = 8000;
 
@@ -450,6 +450,17 @@ function attemptLoad(candidate, loadingMsg, onFail) {
   frame.style.display = "block";
   showLoadingPopup(loadingMsg);
   clearTimeout(playTimeoutId);
+
+  // Sandbox iframe buat block redirect/popup iklan — tapi sebagian provider
+  // (VidHide) sengaja ngedeteksi sandbox dan nolak muter video kalau
+  // dibatasi. Untuk provider begitu, sandbox dilepas biar tetep bisa nonton;
+  // provider lain (Mega, dll) tetap disandbox biar iklannya keblokir.
+  const isVidhide = (candidate.provider || "").toLowerCase().includes("vidhide");
+  if (isVidhide) {
+    frame.removeAttribute("sandbox");
+  } else {
+    frame.setAttribute("sandbox", "allow-scripts allow-same-origin allow-presentation");
+  }
 
   function cleanup() {
     frame.removeEventListener("load", onLoad);
