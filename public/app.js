@@ -294,10 +294,12 @@ function renderEpisodes(episodes) {
 function setStatus(msg) {
   const status = qs("#playerStatus");
   const frame = qs("#playerFrame");
+  const skipBtn = qs("#skipServerBtn");
   status.style.display = "flex";
   status.textContent = msg;
   frame.style.display = "none";
   frame.src = "about:blank";
+  if (skipBtn) skipBtn.style.display = "none";
 }
 
 async function loadEpisode(slug, epNumber) {
@@ -394,6 +396,7 @@ function tryPlayCurrent() {
     cleanup();
     status.style.display = "none";
     frame.style.display = "block";
+    showSkipButton();
   }
   function onError() {
     cleanup();
@@ -410,6 +413,37 @@ function tryPlayCurrent() {
   // kasus koneksi/embed yang beneran gak pernah selesai dimuat.
   playTimeoutId = setTimeout(onError, LOAD_TIMEOUT_MS);
 }
+
+function showSkipButton() {
+  const btn = qs("#skipServerBtn");
+  if (!btn) return;
+  btn.style.display = "block";
+  btn.onclick = () => {
+    btn.style.display = "none";
+    playIndex++;
+    tryPlayCurrent();
+  };
+}
+
+/* Best-effort: sebagian provider embed ngirim postMessage saat video di
+   dalamnya gagal/error. Kita dengerin dan coba deteksi pola umum kata
+   "error"/"fail"/dsb. Kalau providernya diam aja, ini gak akan ke-trigger —
+   pantau console browser (log di bawah) buat lihat apakah ada sinyal yang
+   bisa dipakai, biar pattern-nya bisa disesuaikan lagi nanti. */
+window.addEventListener("message", (event) => {
+  const frame = qs("#playerFrame");
+  if (!frame || !frame.src || frame.src === "about:blank") return;
+  if (event.source !== frame.contentWindow) return;
+
+  console.debug("[Yozora] pesan dari player embed:", event.data);
+
+  const raw = event.data;
+  const text = typeof raw === "string" ? raw : JSON.stringify(raw || {});
+  if (/\b(error|fail(ed)?|not.?found|unavailable|expired)\b/i.test(text)) {
+    playIndex++;
+    tryPlayCurrent();
+  }
+});
 
 function renderDownloads(downloads) {
   const list = qs("#downloadList");
