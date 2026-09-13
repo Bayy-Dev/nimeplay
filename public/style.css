@@ -358,12 +358,27 @@ main { max-width: 1180px; margin: 0 auto; padding: 0 28px 64px; }
   position: absolute;
   inset: 0;
   display: flex;
+  flex-direction: column;
+  gap: 12px;
   align-items: center;
   justify-content: center;
   color: var(--muted);
   font-size: 14px;
   text-align: center;
   padding: 20px;
+}
+
+.status-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--line);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: yozora-spin 0.8s linear infinite;
+}
+
+@keyframes yozora-spin {
+  to { transform: rotate(360deg); }
 }
 
 .skip-server-btn {

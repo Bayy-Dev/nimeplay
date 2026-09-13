@@ -291,12 +291,14 @@ function renderEpisodes(episodes) {
   if (target) target.click();
 }
 
-function setStatus(msg) {
+function setStatus(msg, showSpinner = true) {
   const status = qs("#playerStatus");
   const frame = qs("#playerFrame");
   const skipBtn = qs("#skipServerBtn");
   status.style.display = "flex";
-  status.textContent = msg;
+  status.innerHTML = showSpinner
+    ? `<div class="status-spinner"></div><span>${esc(msg)}</span>`
+    : `<span>${esc(msg)}</span>`;
   frame.style.display = "none";
   frame.src = "about:blank";
   if (skipBtn) skipBtn.style.display = "none";
@@ -384,7 +386,11 @@ function tryPlayCurrent() {
   const frame = qs("#playerFrame");
   const status = qs("#playerStatus");
 
-  setStatus(`Memuat ${candidate.provider} ${candidate.quality}...`);
+  setStatus(
+    playIndex === 0
+      ? `Memuat ${candidate.provider} ${candidate.quality}...`
+      : `Video gagal dimuat, mengganti ke server ${candidate.provider} ${candidate.quality}...`
+  );
   clearTimeout(playTimeoutId);
 
   function cleanup() {
@@ -419,7 +425,6 @@ function showSkipButton() {
   if (!btn) return;
   btn.style.display = "block";
   btn.onclick = () => {
-    btn.style.display = "none";
     playIndex++;
     tryPlayCurrent();
   };
