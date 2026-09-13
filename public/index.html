@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Yozora — Nonton Anime</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <a href="/" class="brand display">YOZO<span>RA</span></a>
+  <form class="search-form" id="searchForm">
+    <input type="text" id="searchInput" placeholder="Cari judul anime...">
+    <button type="submit" aria-label="Cari">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </button>
+  </form>
+</header>
+
+<main>
+  <div id="heroSlot">
+    <div class="hero skeleton" style="min-height:380px"></div>
+  </div>
+
+  <div id="searchResultsSlot" style="display:none">
+    <div class="section-head"><h2 id="searchHeading" class="display"></h2></div>
+    <div class="grid" id="searchGrid"></div>
+  </div>
+
+  <div id="browseSlot">
+    <section>
+      <div class="section-head"><h2 class="display">Rilisan Terbaru</h2></div>
+      <div class="shelf" id="latestShelf">
+        <div class="card"><div class="poster skeleton"></div></div>
+        <div class="card"><div class="poster skeleton"></div></div>
+        <div class="card"><div class="poster skeleton"></div></div>
+        <div class="card"><div class="poster skeleton"></div></div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-head">
+        <h2 class="display">Trending</h2>
+        <div class="tabs" id="trendTabs">
+          <button data-tab="NOW" class="active">Sekarang</button>
+          <button data-tab="DAY">Harian</button>
+          <button data-tab="WEEK">Mingguan</button>
+          <button data-tab="MONTH">Bulanan</button>
+        </div>
+      </div>
+      <div class="grid" id="trendGrid"></div>
+    </section>
+  </div>
+
+  <footer>Yozora mengambil data dari sumber pihak ketiga untuk keperluan pribadi/edukasi.</footer>
+</main>
+
+<script src="/app.js"></script>
+</body>
+</html>
