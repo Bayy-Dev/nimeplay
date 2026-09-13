@@ -373,15 +373,20 @@ main { max-width: 1180px; margin: 0 auto; padding: 0 28px 64px; }
 }
 
 .detail-hero {
-  border-radius: 12px;
-  min-height: 280px;
-  background: var(--panel) center/cover no-repeat;
-  border: 1px solid var(--line);
+  aspect-ratio: 9 / 16;
+  max-height: 620px;
+  min-height: 0 !important;
+  margin: 0 0 20px;
+  border: none;
 }
 
 .detail-title {
-  font-size: 28px;
-  margin: 18px 0 10px;
+  font-size: clamp(24px, 5vw, 36px);
+  margin: 0;
+}
+
+@media (min-width: 700px) {
+  .detail-hero { aspect-ratio: 16 / 9; }
 }
 
 .detail-badges {

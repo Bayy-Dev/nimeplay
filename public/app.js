@@ -667,10 +667,7 @@ async function initDetail() {
     const cover = info.cover || info.poster || info.image || "";
     const hero = qs("#detailHero");
     hero.classList.remove("skeleton");
-    if (cover) {
-      hero.style.backgroundImage = `url('${esc(cover)}')`;
-      hero.classList.add("detail-hero-img");
-    }
+    if (cover) hero.style.backgroundImage = `url('${esc(cover)}')`;
 
     renderDetailBadges(info);
     setupClampToggle(qs("#detailSynopsis"), qs("#synToggle"), info.synopsis || "");
