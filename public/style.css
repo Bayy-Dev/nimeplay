@@ -527,10 +527,19 @@ main { max-width: 1180px; margin: 0 auto; padding: 0 28px 64px; }
 
 .ep-row:hover { border-color: var(--accent); }
 
+.ep-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.ep-row-date,
 .ep-row-views {
   color: var(--muted);
   font-size: 12px;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .ep-list-grid {

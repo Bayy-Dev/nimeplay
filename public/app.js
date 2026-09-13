@@ -352,6 +352,15 @@ function episodeNumber(ep) {
   return fromTitle ? fromTitle[1] : ep.title || "?";
 }
 
+/* Tanggal rilis episode — nama field belum pasti dari ShivraAPI (gak ada
+   contoh live buat dicek), jadi dicoba beberapa kemungkinan sekaligus kayak
+   pola normalizeItem. Kalau masih kosong di UI, cek Network tab pas buka
+   /api/detail/<slug> buat lihat nama field aslinya, terus tambahin di sini. */
+function episodeDate(ep) {
+  return ep.release_date || ep.released || ep.date || ep.aired
+    || ep.upload_date || ep.created_at || ep.updated_at || "";
+}
+
 function renderEpisodes(episodes) {
   const grid = qs("#epGrid");
   if (!episodes.length) {
@@ -767,8 +776,9 @@ function renderDetailBadges(info) {
   if (info.rating) badges.push(`<span class="chip">★ ${esc(info.rating)}</span>`);
   const studio = info.studio || info.producers || info.author || "";
   if (studio) badges.push(`<span class="chip">${esc(studio)}</span>`);
-  const date = info.release_date || info.released || info.aired || info.updated_at || "";
-  if (date) badges.push(`<span class="chip">${esc(date)}</span>`);
+  const date = info.release_date || info.released || info.aired || info.premiered
+    || info.first_air_date || info.year || info.updated_at || "";
+  if (date) badges.push(`<span class="chip">📅 ${esc(date)}</span>`);
   if (info.type) badges.push(`<span class="chip">${esc(info.type)}</span>`);
   const views = info.views || info.view_count || info.viewers || "";
   if (views) badges.push(`<span class="chip">${esc(views)} views</span>`);
@@ -832,10 +842,14 @@ function renderEpisodeList() {
   } else {
     list.innerHTML = items.map(ep => {
       const views = ep.views || ep.view_count || "";
+      const date = episodeDate(ep);
       return `
       <a class="ep-row" href="/watch.html?slug=${encodeURIComponent(detailSlug)}&ep=${encodeURIComponent(ep.slug)}">
         <span class="ep-row-title">Episode ${esc(episodeNumber(ep))}${ep.title && !/^episode/i.test(ep.title) ? ` — ${esc(ep.title)}` : ""}</span>
-        ${views ? `<span class="ep-row-views">👁 ${esc(views)}</span>` : ""}
+        <span class="ep-row-meta">
+          ${date ? `<span class="ep-row-date">${esc(date)}</span>` : ""}
+          ${views ? `<span class="ep-row-views">👁 ${esc(views)}</span>` : ""}
+        </span>
       </a>`;
     }).join("");
   }
