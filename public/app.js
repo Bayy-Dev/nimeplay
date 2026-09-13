@@ -308,6 +308,9 @@ function renderEpisodes(episodes) {
     btn.addEventListener("click", () => {
       qsa(".ep-btn", grid).forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
+      const url = new URL(location.href);
+      url.searchParams.set("ep", btn.dataset.slug);
+      history.replaceState(null, "", url);
       loadEpisode(btn.dataset.slug, btn.dataset.num);
     });
   });
