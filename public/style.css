@@ -382,18 +382,19 @@ main { max-width: 1180px; margin: 0 auto; padding: 0 28px 64px; }
 }
 
 .skip-server-btn {
-  background: var(--panel);
-  color: var(--ink);
-  border: 1px solid var(--line);
+  background: var(--accent);
+  color: #1b1004;
+  border: 1px solid var(--accent);
   border-radius: 20px;
   padding: 8px 16px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition: background 0.15s, transform 0.1s;
 }
 
-.skip-server-btn:hover { background: var(--accent); color: #2b1207; border-color: var(--accent); }
+.skip-server-btn:hover { background: #ff8158; }
+.skip-server-btn:active { transform: scale(0.97); }
 
 .player-actions {
   margin-top: 12px;
@@ -405,6 +406,25 @@ main { max-width: 1180px; margin: 0 auto; padding: 0 28px 64px; }
 .server-toast {
   font-size: 12px;
   color: var(--muted);
+}
+
+.loading-popup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.loading-popup .status-spinner {
+  width: 18px;
+  height: 18px;
+  border-width: 2px;
 }
 
 .controls-row {

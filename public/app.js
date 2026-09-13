@@ -291,15 +291,28 @@ function renderEpisodes(episodes) {
   if (target) target.click();
 }
 
-function setStatus(msg, showSpinner = true) {
+function showLoadingPopup(msg) {
+  const popup = qs("#loadingPopup");
+  if (!popup) return;
+  qs("#loadingPopupText").textContent = msg;
+  popup.style.display = "flex";
+}
+
+function hideLoadingPopup() {
+  const popup = qs("#loadingPopup");
+  if (popup) popup.style.display = "none";
+}
+
+/* Buat placeholder awal & pesan error final (bukan transisi loading) —
+   ini yang muncul DI DALAM kotak player. */
+function setPlayerMessage(msg) {
   const status = qs("#playerStatus");
   const frame = qs("#playerFrame");
   const skipBtn = qs("#skipServerBtn");
   const toast = qs("#serverToast");
+  hideLoadingPopup();
   status.style.display = "flex";
-  status.innerHTML = showSpinner
-    ? `<div class="status-spinner"></div><span>${esc(msg)}</span>`
-    : `<span>${esc(msg)}</span>`;
+  status.textContent = msg;
   frame.style.display = "none";
   frame.src = "about:blank";
   if (skipBtn) skipBtn.style.display = "none";
@@ -307,7 +320,12 @@ function setStatus(msg, showSpinner = true) {
 }
 
 async function loadEpisode(slug, epNumber) {
-  setStatus("Memuat episode...");
+  qs("#playerStatus").style.display = "none";
+  qs("#playerFrame").style.display = "none";
+  qs("#playerFrame").src = "about:blank";
+  qs("#skipServerBtn").style.display = "none";
+  qs("#serverToast").style.display = "none";
+  showLoadingPopup("Memuat episode...");
   qs("#downloadList").innerHTML = "";
   try {
     const data = await api(`/episode/${encodeURIComponent(slug)}`);
@@ -326,7 +344,7 @@ async function loadEpisode(slug, epNumber) {
 
     startAutoPlay(data.stream || []);
   } catch (e) {
-    setStatus(`Gagal memuat episode: ${e.message}`);
+    setPlayerMessage(`Gagal memuat episode: ${e.message}`);
   }
 }
 
@@ -375,7 +393,7 @@ function startAutoPlay(streams) {
   playIndex = 0;
   switchedToMega = false;
   if (!playQueue.length) {
-    setStatus("Tidak ada sumber streaming untuk episode ini.");
+    setPlayerMessage("Tidak ada sumber streaming untuk episode ini.");
     return;
   }
   tryPlayCurrent();
@@ -388,10 +406,15 @@ function findMegaCandidate() {
 }
 
 /* Muat satu kandidat ke iframe, dengan deteksi gagal (error/timeout).
+   Teks loading tampil di popup luar player, bukan nutupin video.
    onFail dipanggil kalau kandidat ini gagal dimuat. */
-function attemptLoad(candidate, statusMsg, onFail) {
+function attemptLoad(candidate, loadingMsg, onFail) {
   const frame = qs("#playerFrame");
-  setStatus(statusMsg);
+  const status = qs("#playerStatus");
+
+  status.style.display = "none";
+  frame.style.display = "block";
+  showLoadingPopup(loadingMsg);
   clearTimeout(playTimeoutId);
 
   function cleanup() {
@@ -401,12 +424,12 @@ function attemptLoad(candidate, statusMsg, onFail) {
   }
   function onLoad() {
     cleanup();
-    qs("#playerStatus").style.display = "none";
-    frame.style.display = "block";
+    hideLoadingPopup();
     updateSkipButton(candidate);
   }
   function onError() {
     cleanup();
+    hideLoadingPopup();
     onFail();
   }
 
@@ -422,12 +445,12 @@ function attemptLoad(candidate, statusMsg, onFail) {
 
 function tryPlayCurrent() {
   if (playIndex >= playQueue.length) {
-    setStatus("Semua server gagal dimuat untuk episode ini.");
+    setPlayerMessage("Semua server gagal dimuat untuk episode ini.");
     return;
   }
   const candidate = playQueue[playIndex];
   const msg = playIndex === 0
-    ? `Memuat ${candidate.provider} ${candidate.quality}...`
+    ? `Memuat server ${candidate.provider} ${candidate.quality}...`
     : `Video gagal dimuat, mengganti ke server ${candidate.provider} ${candidate.quality}...`;
   attemptLoad(candidate, msg, () => {
     playIndex++;
@@ -472,7 +495,7 @@ qs("#skipServerBtn")?.addEventListener("click", () => {
   switchedToMega = true;
   qs("#skipServerBtn").style.display = "none";
   attemptLoad(candidate, `Mengganti ke server Mega ${candidate.quality}...`, () => {
-    setStatus("Server Mega juga gagal dimuat untuk episode ini.");
+    setPlayerMessage("Server Mega juga gagal dimuat untuk episode ini.");
   });
 });
 
