@@ -23,16 +23,22 @@
     <div>
       <div class="player-wrap" id="playerWrap">
         <div class="player-status" id="playerStatus">Pilih episode untuk mulai nonton</div>
-        <video id="video" controls playsinline style="display:none"></video>
+        <iframe id="playerFrame" style="display:none" allowfullscreen frameborder="0" referrerpolicy="no-referrer"></iframe>
       </div>
 
       <div class="controls-row">
-        <div class="pill-group" id="langGroup"></div>
-        <div class="pill-group" id="serverGroup"></div>
+        <div class="pill-group" id="qualityGroup"></div>
+        <div class="pill-group" id="providerGroup"></div>
       </div>
 
       <h1 class="anime-title display" id="animeTitle">Memuat...</h1>
       <p class="anime-desc" id="animeDesc"></p>
+
+      <div id="downloadSection">
+        <h3 class="dl-heading">Unduh Episode</h3>
+        <div id="downloadList"></div>
+      </div>
+
       <a href="/" class="back-link">&larr; Kembali ke beranda</a>
     </div>
 
@@ -45,7 +51,6 @@
   </div>
 </main>
 
-<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.15/dist/hls.min.js"></script>
 <script src="/app.js"></script>
 </body>
 </html>
