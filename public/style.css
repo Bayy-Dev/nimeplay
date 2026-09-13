@@ -337,11 +337,33 @@ main { max-width: 1180px; margin: 0 auto; padding: 0 28px 64px; }
 
 /* Watch page */
 .watch-layout {
-  display: grid;
-  grid-template-columns: 1fr 320px;
-  gap: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   margin-top: 20px;
+  max-width: 900px;
 }
+
+.watch-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 14px;
+  border-radius: 20px;
+}
+
+.back-btn:hover { border-color: var(--teal); color: var(--teal); }
 
 .player-wrap {
   background: #000;
@@ -451,22 +473,109 @@ main { max-width: 1180px; margin: 0 auto; padding: 0 28px 64px; }
 .pill.active { background: var(--accent); border-color: var(--accent); color: #17110d; }
 .pill.lang.active { background: var(--teal); border-color: var(--teal); color: #0c2622; }
 
-.anime-title { font-size: 24px; margin: 4px 0 6px; }
+.anime-title { font-size: 22px; margin: 0 0 6px; line-height: 1.2; }
 .anime-title small { display: block; color: var(--muted); font-family: 'Manrope'; font-weight: 500; font-size: 14px; margin-top: 2px; }
 
-.anime-desc { color: var(--muted); font-size: 14px; margin: 10px 0; }
+.anime-desc {
+  color: var(--muted);
+  font-size: 13.5px;
+  margin: 10px 0 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 
-.side-panel {
+.anime-desc.expanded {
+  -webkit-line-clamp: unset;
+  overflow: visible;
+}
+
+.desc-toggle {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 4px;
+}
+
+.desc-toggle:hover { color: var(--teal); }
+
+/* Info card: poster + meta, mirroring the reference layout */
+.info-card {
+  display: flex;
+  gap: 14px;
+  margin-top: 18px;
+  align-items: flex-start;
+}
+
+.info-poster {
+  width: 84px;
+  height: 118px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  flex-shrink: 0;
+}
+
+.info-meta { min-width: 0; flex: 1; }
+
+.info-sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.info-episode {
+  color: var(--teal);
+  font-weight: 700;
+}
+
+.info-stat { display: inline-flex; align-items: center; gap: 4px; }
+.info-stat::before { content: "·"; margin-right: 4px; color: var(--muted); }
+
+.action-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 16px 0;
+}
+
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+}
+
+.action-btn:hover { border-color: var(--teal); color: var(--teal); }
+.action-badge { color: var(--accent); border-color: var(--accent-dim); cursor: default; }
+.action-badge:hover { color: var(--accent); border-color: var(--accent-dim); }
+
+.episode-section {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 14px;
-  max-height: 620px;
-  display: flex;
-  flex-direction: column;
+  margin: 4px 0 18px;
 }
 
-.side-panel h3 {
+.episode-section h3 {
   margin: 0 0 10px;
   font-size: 15px;
 }
@@ -475,6 +584,7 @@ main { max-width: 1180px; margin: 0 auto; padding: 0 28px 64px; }
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(46px, 1fr));
   gap: 6px;
+  max-height: 260px;
   overflow-y: auto;
   padding-right: 4px;
 }
@@ -521,18 +631,6 @@ main { max-width: 1180px; margin: 0 auto; padding: 0 28px 64px; }
   align-items: center;
 }
 
-.back-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 700;
-  margin: 18px 0 0;
-}
-
-.back-link:hover { color: var(--teal); }
-
 .skeleton {
   background: linear-gradient(90deg, var(--panel) 25%, var(--panel-raised) 37%, var(--panel) 63%);
   background-size: 400% 100%;
@@ -550,8 +648,6 @@ footer {
 }
 
 @media (max-width: 860px) {
-  .watch-layout { grid-template-columns: 1fr; }
-  .side-panel { max-height: 320px; }
   .site-header { padding: 12px 16px; flex-wrap: wrap; }
   main { padding: 0 16px 48px; }
 }
