@@ -428,12 +428,10 @@ function buildPlayQueue(streams) {
 let playQueue = [];
 let playIndex = 0;
 let playTimeoutId = null;
-let switchedToMega = false;
 
 function startAutoPlay(streams) {
   playQueue = buildPlayQueue(streams);
   playIndex = 0;
-  switchedToMega = false;
   if (!playQueue.length) {
     setPlayerMessage("Tidak ada sumber streaming untuk episode ini.");
     return;
@@ -441,11 +439,6 @@ function startAutoPlay(streams) {
   tryPlayCurrent();
 }
 
-function findMegaCandidate() {
-  // playQueue sudah terurut kualitas tertinggi dulu, jadi entri Mega
-  // pertama yang ketemu otomatis kualitas terbaik yang tersedia.
-  return playQueue.find(c => (c.provider || "").toLowerCase().includes("mega")) || null;
-}
 
 /* Muat satu kandidat ke iframe, dengan deteksi gagal (error/timeout).
    Teks loading tampil di popup luar player, bukan nutupin video.
@@ -479,7 +472,7 @@ function attemptLoad(candidate, loadingMsg, onFail) {
   function onLoad() {
     cleanup();
     hideLoadingPopup();
-    updateSkipButton(candidate);
+    updateSkipButton();
     updateQualityBadge(candidate);
   }
   function onError() {
@@ -506,26 +499,25 @@ function tryPlayCurrent() {
   const candidate = playQueue[playIndex];
   const msg = playIndex === 0
     ? `Memuat server ${candidate.provider} ${candidate.quality}...`
-    : `Video gagal dimuat, mengganti ke server ${candidate.provider} ${candidate.quality}...`;
+    : `Mengganti ke server ${candidate.provider} ${candidate.quality}...`;
   attemptLoad(candidate, msg, () => {
     playIndex++;
     tryPlayCurrent();
   });
 }
 
-/* Tombol "Ganti ke server Mega" — cuma muncul kalau server yang lagi
-   jalan bukan Mega dan ada opsi Mega buat episode ini. Sekali dipakai,
-   langsung hilang biar gak ke-klik dobel; klik lagi (kalau somehow masih
-   kepencet) cuma kasih notifikasi, gak pindah-pindah lagi. */
-function updateSkipButton(candidate) {
+/* Tombol "Server bermasalah? Ganti server" — muncul begitu ada server
+   berhasil dimuat DAN masih ada kandidat lain di antrean. Ini perlu tombol
+   manual karena kegagalan macam "file gak bisa diakses"/"No Image Available"
+   dari sisi provider gak kedeteksi otomatis lewat event load/error iframe
+   (kontennya cross-origin, gak bisa diinspeksi dari luar). Klik tombol ini
+   maju ke kandidat berikutnya di antrean (sudah terurut kualitas tertinggi
+   dulu, lalu provider), jadi otomatis ngutamain 1080p kalau masih ada). */
+function updateSkipButton() {
   const btn = qs("#skipServerBtn");
   if (!btn) return;
-  const isMega = (candidate.provider || "").toLowerCase().includes("mega");
-  if (isMega || switchedToMega || !findMegaCandidate()) {
-    btn.style.display = "none";
-  } else {
-    btn.style.display = "inline-block";
-  }
+  const hasNext = playIndex < playQueue.length - 1;
+  btn.style.display = hasNext ? "inline-block" : "none";
 }
 
 function updateQualityBadge(candidate) {
@@ -572,20 +564,13 @@ function showToast(msg) {
 }
 
 qs("#skipServerBtn")?.addEventListener("click", () => {
-  if (switchedToMega) {
-    showToast("Server sudah diganti ke Mega.");
+  if (playIndex >= playQueue.length - 1) {
+    showToast("Tidak ada server lain untuk episode ini.");
     return;
   }
-  const candidate = findMegaCandidate();
-  if (!candidate) {
-    showToast("Server Mega tidak tersedia untuk episode ini.");
-    return;
-  }
-  switchedToMega = true;
   qs("#skipServerBtn").style.display = "none";
-  attemptLoad(candidate, `Mengganti ke server Mega ${candidate.quality}...`, () => {
-    setPlayerMessage("Server Mega juga gagal dimuat untuk episode ini.");
-  });
+  playIndex++;
+  tryPlayCurrent();
 });
 
 /* Best-effort: sebagian provider embed ngirim postMessage saat video di
