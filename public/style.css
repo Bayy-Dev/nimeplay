@@ -329,7 +329,7 @@ main { max-width: 1180px; margin: 0 auto; padding: 0 28px 64px; }
   position: relative;
 }
 
-.player-wrap video { width: 100%; height: 100%; }
+.player-wrap video, .player-wrap iframe { width: 100%; height: 100%; }
 
 .player-status {
   position: absolute;
@@ -409,6 +409,33 @@ main { max-width: 1180px; margin: 0 auto; padding: 0 28px 64px; }
 
 .ep-btn:hover { border-color: var(--teal); }
 .ep-btn.active { background: var(--accent); border-color: var(--accent); color: #17110d; }
+
+.dl-heading {
+  font-size: 15px;
+  margin: 22px 0 10px;
+  color: var(--muted);
+}
+
+.dl-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.dl-quality {
+  font-family: 'Big Shoulders Display', sans-serif;
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--teal);
+  min-width: 50px;
+}
+
+.pill-group a.pill {
+  display: inline-flex;
+  align-items: center;
+}
 
 .back-link {
   display: inline-flex;
