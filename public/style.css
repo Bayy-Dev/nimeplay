@@ -346,7 +346,7 @@ main { max-width: 1180px; margin: 0 auto; padding: 0 28px 64px; }
 
 .watch-toolbar {
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
   margin-bottom: 8px;
 }
 
