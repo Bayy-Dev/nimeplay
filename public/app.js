@@ -392,7 +392,7 @@ async function loadEpisode(slug, epNumber) {
    VidHide dicoba lebih dulu, baru Mega, baru provider lain.
    Kalau satu server gagal dimuat, otomatis lanjut ke kandidat berikutnya. */
 
-const PROVIDER_PRIORITY = ["mega", "vidhide"];
+const PROVIDER_PRIORITY = ["vidhide", "mega"];
 const QUALITY_PRIORITY = ["1080p", "720p", "480p", "360p"];
 const LOAD_TIMEOUT_MS = 8000;
 
