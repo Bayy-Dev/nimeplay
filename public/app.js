@@ -24,6 +24,14 @@ function normalizeItem(item) {
   };
 }
 
+/* Ambil array item dari response, apapun nama key pembungkusnya (beda-beda
+   tiap provider/endpoint: list, items, results, dst). */
+function extractList(data) {
+  if (Array.isArray(data)) return data;
+  if (!data || typeof data !== "object") return [];
+  return data.list || data.items || data.results || data.animeList || data.anime_list || data.data || [];
+}
+
 function slugFromUrl(url) {
   try {
     const parts = new URL(url).pathname.split("/").filter(Boolean);
@@ -111,6 +119,7 @@ async function initHome() {
   loadHero();
   loadTopSeries();
   loadAnimeSections();
+  loadCompletedSection();
 }
 
 let heroData = [];
@@ -226,35 +235,43 @@ function animeCardHTML(raw, status, rating) {
 
 async function loadAnimeSections() {
   const newGrid = qs("#newUpdateGrid");
-  const completedSection = qs("#completedSection");
-  const completedGrid = qs("#completedGrid");
   try {
     const [latestData, homeData] = await Promise.all([
       api("/latest"),
       api("/home").catch(() => ({})),
     ]);
-    const items = latestData.list || latestData.items || (Array.isArray(latestData) ? latestData : []);
+    const items = extractList(latestData);
 
     // Rating gak ada di /latest — cocokkan slug ke top_series (/home) buat
     // kartu yang kebetulan juga masuk trending, sisanya tanpa badge rating.
     const ratingMap = {};
     (homeData.top_series || []).forEach(t => { if (t.slug) ratingMap[t.slug] = t.rating; });
 
-    const newItems = items.filter(i => !isCompletedEpisode(i.episode));
-    const completedItems = items.filter(i => isCompletedEpisode(i.episode));
-
-    newGrid.innerHTML = newItems.length
-      ? newItems.map(i => animeCardHTML(i, "New", ratingMap[i.slug])).join("")
+    newGrid.innerHTML = items.length
+      ? items.map(i => animeCardHTML(i, "New", ratingMap[i.slug])).join("")
       : `<div class="empty">Belum ada rilisan terbaru.</div>`;
+  } catch (e) {
+    newGrid.innerHTML = `<div class="error">Gagal memuat: ${esc(e.message)}</div>`;
+  }
+}
 
-    if (completedItems.length) {
+/* Anime tamat sekarang beneran dari endpoint /completed (backend proxy ke
+   Otakudesu, karena Winbu gak punya data ini sama sekali). */
+async function loadCompletedSection() {
+  const completedSection = qs("#completedSection");
+  const completedGrid = qs("#completedGrid");
+  try {
+    const data = await api("/completed");
+    const items = extractList(data);
+    if (items.length) {
       completedSection.style.display = "";
-      completedGrid.innerHTML = completedItems.map(i => animeCardHTML(i, "Completed", ratingMap[i.slug])).join("");
+      completedGrid.innerHTML = items.map(i => animeCardHTML(i, "Completed", i.rating)).join("");
     } else {
       completedSection.style.display = "none";
     }
   } catch (e) {
-    newGrid.innerHTML = `<div class="error">Gagal memuat: ${esc(e.message)}</div>`;
+    completedSection.style.display = "";
+    completedGrid.innerHTML = `<div class="error">Gagal memuat: ${esc(e.message)}</div>`;
   }
 }
 
