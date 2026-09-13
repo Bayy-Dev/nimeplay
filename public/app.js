@@ -256,7 +256,7 @@ async function loadAnimeSections() {
 }
 
 /* Anime tamat sekarang beneran dari endpoint /completed (backend proxy ke
-   Otakudesu, karena Winbu gak punya data ini sama sekali). */
+   Kuramanime, karena Winbu gak punya data ini sama sekali). */
 async function loadCompletedSection() {
   const completedSection = qs("#completedSection");
   const completedGrid = qs("#completedGrid");

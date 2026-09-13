@@ -8,14 +8,15 @@ from urllib.parse import unquote
 app = Flask(__name__)
 CORS(app)
 
-# Winbu = sumber utama. Otakudesu = cadangan (dipakai juga sebagai satu-satunya
-# sumber utk /completed, karena Winbu emang gak nyediain data anime tamat).
+# Winbu = sumber utama. Kuramanime = cadangan — dipakai kalau item gak ada
+# di Winbu, dan jadi satu-satunya sumber utk /completed (Winbu gak nyediain
+# data anime tamat sama sekali).
 UPSTREAM_WBN = "https://shivraapi.my.id/wbn"
-UPSTREAM_OTD = "https://shivraapi.my.id/otd"
+UPSTREAM_KRM = "https://shivraapi.my.id/krm"
 
-# Penanda di depan slug utk item yang datang dari Otakudesu, biar /detail &
+# Penanda di depan slug utk item yang datang dari Kuramanime, biar /detail &
 # /episode tau harus nembak upstream mana pas item itu diklik nanti.
-SRC_PREFIX = "otd:"
+SRC_PREFIX = "krm:"
 
 _retry = Retry(
     total=3,
@@ -45,7 +46,7 @@ def upstream_get(base, path, params=None):
 
 
 def _tag_item(item):
-    """Tandain slug satu item otakudesu dgn prefix 'otd:' (bikin dulu dari
+    """Tandain slug satu item Kuramanime dgn prefix 'krm:' (bikin dulu dari
     url kalau field slug-nya gak ada)."""
     if not isinstance(item, dict):
         return item
@@ -61,7 +62,7 @@ def _tag_item(item):
 
 
 def tag_source(data):
-    """Cari list item di response Otakudesu (nama key-nya suka beda2 tiap
+    """Cari list item di response Kuramanime (nama key-nya suka beda2 tiap
     endpoint) lalu tandain slug tiap item. Kalau data-nya cuma satu objek
     detail (punya field 'episodes'), tandain juga slug tiap episodenya."""
     list_keys = ("data", "list", "items", "results", "animeList", "anime_list", "anime")
@@ -83,12 +84,12 @@ def tag_source(data):
 
 
 def split_source(slug):
-    """slug diawali 'otd:' -> asalnya Otakudesu (cadangan). Selain itu -> Winbu (utama).
+    """slug diawali 'krm:' -> asalnya Kuramanime (cadangan). Selain itu -> Winbu (utama).
     Vercel kadang gak ngedecode %3A -> ':' sebelum sampe ke Flask, jadi decode
     manual dulu di sini biar gak salah routing ke upstream."""
     slug = unquote(slug)
     if slug.startswith(SRC_PREFIX):
-        return UPSTREAM_OTD, slug[len(SRC_PREFIX):]
+        return UPSTREAM_KRM, slug[len(SRC_PREFIX):]
     return UPSTREAM_WBN, slug
 
 
@@ -106,7 +107,7 @@ def index():
         "endpoints": {
             "/api/home": "Top series for the homepage",
             "/api/latest?page=": "Latest anime updates",
-            "/api/completed?page=": "Completed / tamat anime (sumber: Otakudesu)",
+            "/api/completed?page=": "Completed / tamat anime (sumber: Kuramanime)",
             "/api/search?q=&page=": "Search anime/movies/tv",
             "/api/detail/<slug>": "Anime detail + episode list",
             "/api/episode/<slug>": "Episode stream & download links",
@@ -118,7 +119,7 @@ def index():
 def api_home():
     data, code = upstream_get(UPSTREAM_WBN, "/home")
     if code != 200:
-        data, code = upstream_get(UPSTREAM_OTD, "/home")
+        data, code = upstream_get(UPSTREAM_KRM, "/home")
         if code == 200:
             data = tag_source(data)
     return respond(data, code)
@@ -129,8 +130,7 @@ def api_latest():
     page = request.args.get("page", "1")
     data, code = upstream_get(UPSTREAM_WBN, "/latestupdate", params={"page": page})
     if code != 200:
-        # Otakudesu gak punya "latest update" persis, /ongoing paling deket konsepnya.
-        data, code = upstream_get(UPSTREAM_OTD, "/ongoing", params={"page": page})
+        data, code = upstream_get(UPSTREAM_KRM, "/ongoing", params={"page": page})
         if code == 200:
             data = tag_source(data)
     return respond(data, code)
@@ -138,9 +138,9 @@ def api_latest():
 
 @app.route("/api/completed", methods=["GET"])
 def api_completed():
-    """Winbu gak nyediain anime tamat sama sekali, jadi ini SELALU dari Otakudesu."""
+    """Winbu gak nyediain anime tamat sama sekali, jadi ini SELALU dari Kuramanime."""
     page = request.args.get("page", "1")
-    data, code = upstream_get(UPSTREAM_OTD, "/completed", params={"page": page})
+    data, code = upstream_get(UPSTREAM_KRM, "/completed", params={"page": page})
     if code == 200:
         data = tag_source(data)
     return respond(data, code)
@@ -148,24 +148,21 @@ def api_completed():
 
 @app.route("/api/search", methods=["GET"])
 def api_search():
+    # Catatan: Kuramanime gak (ketauan) punya endpoint search sendiri di
+    # dokumentasinya, jadi search cuma jalan lewat Winbu, gak ada fallback.
     q = request.args.get("q", "").strip()
     page = request.args.get("page", "1")
     if not q:
         return jsonify({"error": "Query 'q' is required"}), 400
     data, code = upstream_get(UPSTREAM_WBN, "/search", params={"q": q, "page": page})
-    if code != 200:
-        data, code = upstream_get(UPSTREAM_OTD, "/search", params={"q": q})
-        if code == 200:
-            data = tag_source(data)
     return respond(data, code)
 
 
 @app.route("/api/detail/<path:slug>", methods=["GET"])
 def api_detail(slug):
     base, real_slug = split_source(slug)
-    path = f"/anime/{real_slug}" if base == UPSTREAM_OTD else f"/detail/{real_slug}"
-    data, code = upstream_get(base, path)
-    if code == 200 and base == UPSTREAM_OTD:
+    data, code = upstream_get(base, f"/detail/{real_slug}")
+    if code == 200 and base == UPSTREAM_KRM:
         data = tag_source(data)
     return respond(data, code)
 
